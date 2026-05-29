@@ -5,6 +5,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.4.0] — 2026-05-29
+
+### Added
+- **English vocabulary expanded to 2,698 entries** — imported all 2,402 CST `semantic_fields.json` entries; deduplicated against the existing 883 entries yielding 1,815 net additions
+- **Two new semantic fields: `take` and `change`** — previously unmapped CST fields now have first-class routing in both English and Arabic
+- **Arabic ROOT_MAP expanded to 1,711 entries** — 321 new trilateral roots from CST `ARABIC_ROOT_TO_FIELD`, each generating base, present-tense (يـ) and masdar (ـة) forms
+- **Arabic DIRECT_FIELD expanded to 470 entries** — 171 new nouns and multi-word terms across govern, trade, health, science, tech, social, art, sport, food, nature
+- **RELATION_MAP_AR expanded** — 25 new relation words (`حيث`, `لأن`, `بينما`, `كما`, `مثل`, `حين`, `عندما`, `إلا`, `كل`, `بعض`, …)
+- **COMPOUND_FIELDS_AR expanded** — 30 new bigrams (`علاج نفسي`, `حقوق إنسان`, `طاقة متجددة`, `ذكاء اصطناعي`, `كرة القدم`, …)
+- **ROOT_FIELD expanded to 416 entries** — new root codes for all new fields
+
+### Changed
+- Semantic field count: **40 → 42** (added `take`, `change`)
+- README updated to reflect 42 fields and 2,100+ Arabic stems
+
+### Tests
+- **90 tests passing** (all existing tests preserved, no regressions)
+
+---
+
 ## [1.3.0] — 2026-05-29
 
 ### Added

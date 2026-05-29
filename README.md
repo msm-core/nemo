@@ -96,7 +96,7 @@ tokenStreamAr("لماذا فشل النظام؟");
 
 The Arabic tokenizer includes:
 - **Clitic segmentation** — strips و/ف conjunctions, ب/ل/ك prepositions, ال article, object suffixes
-- **Root-based lookup** — 700+ stems → 40 semantic fields via trilateral root codes
+- **Root-based lookup** — 2,100+ stems → 42 semantic fields via trilateral root codes
 - **Compound phrases** — 50+ bigrams (`ذكاء اصطناعي` → `tech`, `كرة قدم` → `sport`, …)
 - **Morphological roles** — فاعل (agent), مفعول (patient), تفعيل (process), مفعلة (place)
 - **Normalization resilience** — diacritics, ى/ي, آ/أ/إ/ا, tatweel all handled transparently
@@ -303,7 +303,7 @@ The agent keeps one **running sum** per semantic field. Each accepted input shif
 
 ## Semantic Fields
 
-40 shared fields across English and Arabic:
+42 shared fields across English and Arabic:
 
 `know` · `think` · `speak` · `write` · `see` · `feel` · `create` · `destroy` · `fix` · `work` · `move` · `send` · `give` · `gather` · `hold` · `connect` · `exist` · `govern` · `fight` · `trade` · `social` · `possess` · `science` · `health` · `tech` · `art` · `sport` · `nature` · `weather` · `animal` · `plant` · `body` · `food` · `material` · `color` · `time` · `place` · `size` · `measure` · `quality`
 
@@ -333,11 +333,11 @@ nemo's tokenizer is built on the linguistic principles of **Contextual Semantic 
 
 | CST concept | nemo implementation |
 |---|---|
-| Semantic fields (~45 universal) | 40 shared fields, same names |
+| Semantic fields (~45 universal) | 42 shared fields, same names |
 | Morphological role detection | `ROLE:agent` / `patient` / `process` / `place` |
 | Triconsonantal root algebra | `ROOT_MAP` → `ROOT_FIELD` for Arabic stems |
 | Structural markers (negation, tense, modality) | `NEG`, `MODAL`, `PAST`, `FUTURE`, `COND`, `CAUSE` |
-| Cross-lingual field parity | Same 40 fields for English and Arabic |
+| Cross-lingual field parity | Same 42 fields for English and Arabic |
 
 ### What is different
 
