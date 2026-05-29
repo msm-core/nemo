@@ -1,6 +1,6 @@
 # nemo-ai — Architecture Reference
 
-> Internal technical reference for developers and code agents working on this codebase.  
+> Internal technical reference for developers and code agents working on this codebase.
 > For user-facing documentation, see [README.md](README.md).
 
 ---
@@ -79,8 +79,8 @@ Same `CSTToken[]` output interface as the English tokenizer. Significantly more 
 2. **Compound scan** — bigrams in `COMPOUND_FIELDS_AR` (pre-scan entire sentence)
 3. **Structural detect** — negation, questions, modals, tense markers
 4. **Clitic segment** (`segment()`) — strips prefixes (و/ف, ب/ل/ك, ال) and suffixes (هم/ها/ه/ك/نا/ي + accusative ا)
-5. **Root/field lookup** — `ROOT_MAP[stem] → root_code → ROOT_FIELD[root_code] → field`  
-   fallback: `DIRECT_FIELD[stem] → field`  
+5. **Root/field lookup** — `ROOT_MAP[stem] → root_code → ROOT_FIELD[root_code] → field`
+   fallback: `DIRECT_FIELD[stem] → field`
    fallback: `stripVerbAug(stem)` for augmented verb forms
 
 **Key data structures:**
@@ -177,7 +177,7 @@ Rule-based intent frame extraction between tokenizer and encoder.
 ### `src/persist.ts` — Persistence Helpers
 Serializes/deserializes `HDCAgent` + `HDVEncoder` state to/from JSON files.
 
-**`saveToFile(path, agent, encoder, meta?)`** — writes `{ agent: AgentState, encoder: AtomState, meta }` to a `.nemo.json` file.  
+**`saveToFile(path, agent, encoder, meta?)`** — writes `{ agent: AgentState, encoder: AtomState, meta }` to a `.nemo.json` file.
 **`loadFromFile(path)`** — reconstructs both objects.
 
 The format is deliberately plain JSON (no binary) so it can be stored in databases, Redis, S3, etc.
@@ -258,8 +258,8 @@ tests/agent.test.ts        — HDCAgent (observe, calibrate, classify, update, p
 tests/pipeline.test.ts     — Full pipeline (tokenize → encode → classify → gate)
 ```
 
-Run all: `npm test`  
-Build: `npm run build`  
+Run all: `npm test`
+Build: `npm run build`
 The `prepublishOnly` script runs `build + test` automatically before `npm publish`.
 
 ---

@@ -6,11 +6,11 @@ This file is the first thing a code agent should read. It provides the operation
 
 ## Identity
 
-**Package:** `nemo-ai`  
-**Version:** See `package.json` → `version`  
-**Language:** TypeScript 5, Node.js 18+  
-**Runtime dependencies:** **none** (zero external packages at runtime)  
-**Repository:** https://github.com/msm-core/nemo  
+**Package:** `nemo-ai`
+**Version:** See `package.json` → `version`
+**Language:** TypeScript 5, Node.js 18+
+**Runtime dependencies:** **none** (zero external packages at runtime)
+**Repository:** https://github.com/msm-core/nemo
 
 ---
 
@@ -22,7 +22,7 @@ npm run build     # Compile TypeScript → dist/
 npm run clean     # Remove dist/
 ```
 
-**Never run `npm publish` unless the user explicitly asks for it.**  
+**Never run `npm publish` unless the user explicitly asks for it.**
 The `prepublishOnly` script runs `build + test` automatically, so tests must pass before publish.
 
 ---
