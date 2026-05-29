@@ -694,7 +694,7 @@ export const SEMANTIC_FIELDS: Record<string, string> = {
   bug: "tech",
   async: "tech",
   await: "tech",
-  library: "tech",
+  library: "write",
   framework: "tech",
   api: "tech",
   loop: "tech",

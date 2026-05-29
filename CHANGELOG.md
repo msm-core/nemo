@@ -5,6 +5,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.5.0] — 2026-05-29
+
+### Fixed — Arabic tokenizer production coverage (43% → 100% on real-world agent inputs)
+- **Possessive `ي` suffix stripping** — `حسابي` / `هاتفي` now correctly resolve to their root (was being ignored as LIT)
+- **Accusative alef stripping** — tanwin-fath nouns like `موعداً` normalize to `موعدا` then correctly strip to `موعد` for lookup
+- **Form VIII verb recognition** — explicit entries for `احتاج`/`يحتاج` (need), `اختار` (choose), `انتظر` (wait), `اشترك`/`يشترك` (subscribe), `اكتسب`/`يكتسب` (acquire)
+- **`أريد`/`يريد` (want)** — first-person verb form now resolves via `feel` field
+- **`klf` root added** — `يكلف`/`كلف`/`تكلف` (cost/expense) now map to `trade` field
+- **High-frequency customer-service nouns added to DIRECT_FIELD** — `استرداد` (refund), `إلغاء` (cancellation), `اشتراك` (subscription), `مبلغ` (amount), `محظور`/`معطل` (blocked/broken), `حجز` (booking), `شحن` (shipping), `تكلفة` (cost), `باقة` (package plan), and 25+ more
+- **`library → write`** — corrected wrong field mapping (`tech` was a programmer reflex; CST correctly maps it to `write`)
+
+### Added
+- `stripVerbAug()` — pure-TypeScript augmented-verb prefix stripper (Form V `ت`, Form X `است`, 1st-person `ا`) as a lookup fallback; zero dependencies
+- `VERB_AUG_PREFIXES` constant for the prefix list
+
+---
+
 ## [1.4.0] — 2026-05-29
 
 ### Added

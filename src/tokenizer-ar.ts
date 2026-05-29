@@ -56,7 +56,18 @@ const OBJECT_SUFFIXES = [
   "\u0647",         // ه   him/it
   "\u0643",         // ك   you (sg)
   "\u0646\u0627",   // نا  us
+  "\u064A",         // ي   my (first-person possessive)
 ];
+
+// Form-derived prefixes that signal augmented verb stems.
+// Stripping these exposes the base stem for ROOT_MAP lookup.
+// Order: longest first to avoid partial matches.
+const VERB_AUG_PREFIXES = [
+  "\u0627\u0633\u062A", // است  Form X (istaf'ala)
+  "\u062A",             // ت    Form V (tafa''ala) — also Form VI, X etc.
+  "\u0627",             // ا    Form I 1st-person (أ normalized → ا) OR Form VIII after infix
+];
+
 /** Strip leading clitics + definite article, trailing object suffixes. Returns stem. */
 function segment(word: string): string {
   let s = word;
@@ -72,13 +83,40 @@ function segment(word: string): string {
   if (s.startsWith(DEF_ARTICLE) && s.length > DEF_ARTICLE.length + 1) {
     s = s.slice(DEF_ARTICLE.length);
   }
-  // Object suffixes (remove one)
+  // Object/possessive suffixes (remove one)
   for (const suf of OBJECT_SUFFIXES) {
     if (s.endsWith(suf) && s.length > suf.length + 2) { s = s.slice(0, -suf.length); break; }
   }
   // Normalize tā-marbūṭah to hā (ة→ه) on stem end for root matching
   if (s.endsWith(TA_MARBUTA)) s = s.slice(0, -1) + HA;
+  // Strip trailing accusative alef (ـاً → ـا after diacritic removal) when length > 3
+  // Handles indefinite accusative nouns: موعداً → موعدا → موعد
+  if (s.endsWith("\u0627") && s.length > 3) s = s.slice(0, -1);
   return s;
+}
+
+/**
+ * Try augmented-verb prefix stripping as a fallback when the direct stem
+ * is not in ROOT_MAP / DIRECT_FIELD.
+ * Form X  استـ  → strip 3 chars  (استكتب → كتب)
+ * Form V   تـ   → strip 1 char   (تتبع → تبع — then lookup يتبع via ROOT_MAP)
+ * 1st-pers ا    → strip 1 char   (اريد → ريد → lookup يريد)
+ * Returns the shortened stem, or the original if no rule fires.
+ */
+function stripVerbAug(stem: string): string {
+  // Form X: است prefix (min remaining length 3)
+  if (stem.startsWith(VERB_AUG_PREFIXES[0]) && stem.length > 5) {
+    return stem.slice(3);
+  }
+  // Form V/VI: ت prefix — only strip when length ≥ 5 (تتبع=4 not useful, تسجيل=5 ok)
+  if (stem.startsWith(VERB_AUG_PREFIXES[1]) && stem.length >= 5) {
+    return stem.slice(1);
+  }
+  // 1st-person ا prefix — only strip when remaining ≥ 3 chars
+  if (stem.startsWith(VERB_AUG_PREFIXES[2]) && stem.length >= 4) {
+    return stem.slice(1);
+  }
+  return stem;
 }
 // ── 3. Root table — Arabic stems (post-normalize + post-segment) → root code ──
 // 700+ entries across all 40 CST semantic fields.
@@ -787,6 +825,7 @@ const ROOT_MAP: Record<string, string> = {
   "تجر": "tjr",  "يتجر": "tjr",  "تجرة": "tjr",
   "ربح": "rbH",  "يربح": "rbH",  "ربحة": "rbH",
   "خسر": "xsr",  "يخسر": "xsr",  "خسرة": "xsr",
+  "كلف": "klf",  "يكلف": "klf",  "كلفة": "klf",   // cost/expense — klf
   // fight (extended)
   "جهد": "jhd",  "يجهد": "jhd",  "جهدة": "jhd",
   "نضل": "npl",  "ينضل": "npl",  "نضلة": "npl",
@@ -992,7 +1031,7 @@ const ROOT_FIELD: Record<string, string> = {
   nzʿ:    "fight", hdm:    "fight",
   // Trade
   tjr:    "trade", šry:    "trade", "byʿ":  "trade", iqtṣd:  "trade",
-  "swq": "trade",  "thmn": "trade",  "qd": "trade",
+  "swq": "trade",  "thmn": "trade",  "qd": "trade",  klf: "trade",
   // Food
   "ʾkl":  "food",  "ṭʿm":  "food",  "ṭbḵ":  "food",  wjbh:   "food",
   // Health
@@ -1500,7 +1539,7 @@ const DIRECT_FIELD: Record<string, string> = {
   "تشخيص":   "health",  "أمراض":   "health",  "وباء":    "health",
   "حجر صحي": "health",  "لقاح":    "health",  "فيروس":   "health",
   "بكتيريا": "health",  "مناعة":   "health",  "تغذية":   "health",
-  // Science / Research  
+  // Science / Research
   "فرضية":   "science", "نظرية":   "science", "دليل":    "science",
   "إحصاء":   "science", "ذرة":     "science", "خلية":    "science",
   "جين":     "science", "تطور":    "science", "تجربة":   "science",
@@ -1543,6 +1582,44 @@ const DIRECT_FIELD: Record<string, string> = {
   // Material
   "خامات":   "material","معادن":  "material",
   "كيمياء":  "material","خليط":   "material","سبيكة":  "material",
+  // ── High-frequency customer/agent nouns (production coverage) ─────────────
+  // Account / money / cost
+  "حساب":    "trade",   "حسابات":  "trade",
+  "مبلغ":    "trade",   "مبالغ":   "trade",
+  "تكلفة":   "trade",   "كلفة":    "trade",
+  "غرامة":   "trade",
+  // Refund / cancellation / subscription
+  "استرداد": "trade",   "إرجاع":   "trade",
+  "إلغاء":   "trade",   "اشتراك":  "trade",   "اشتراكات":"trade",
+  "باقة":    "trade",   "باقات":   "trade",
+  // Request / order / shipping
+  "طلبات":   "trade",   "شحن":     "trade",
+  // Blocked / broken / disrupted states
+  "محظور":   "fix",     "معطل":    "fix",
+  "خلل":     "fix",     "مشكلة":   "fix",     "مشاكل":   "fix",
+  "أعطال":   "fix",
+  // User / account
+  "إيميل":   "send",
+  "مستخدم":  "social",  "مستخدمون":"social",
+  // Appointment / booking
+  "حجز":     "trade",   "حجوزات":  "trade",
+  "تأجير":   "trade",   "استئجار": "trade",
+  // Need / want (noun forms + Form VIII verbs)
+  "حاجة":    "feel",    "رغبة":    "feel",    "احتياج": "feel",
+  "احتاج":   "feel",    "يحتاج":   "feel",
+  "اريد":    "feel",    "يريد":    "feel",    // أريد normalized
+  // Common Form VIII verbs (اِفْتَعَلَ pattern)
+  "اختار":   "think",   "يختار":   "think",   // choose
+  "انتظر":   "time",    "ينتظر":   "time",    // wait
+  "اكتسب":   "trade",   "يكتسب":   "trade",   // acquire
+  "اشترك":   "trade",   "يشترك":   "trade",   // subscribe/join (verb form)
+  // Notification / announcement
+  "تذكير":   "think",   "تنبيه":   "think",   "إشعار":  "send",
+  "إعلان":   "send",
+  // Delivery / receipt
+  "توصيل":   "send",    "استلام": "take",
+  // Policy / terms
+  "شروط":    "govern",  "لوائح":  "govern",
 };
 
 // ── 5b. Pre-normalized lookup tables ────────────────────────────────────────
@@ -1649,8 +1726,12 @@ export const COMPOUND_FIELDS_AR: Record<string, string> = {
   "سوق عمل":         "trade",
   "حد أدنى":         "measure",
   "حد أقصى":         "measure",
+  // Production bigrams
+  "كلمة مرور":       "tech",
+  "رمز مرور":        "tech",
+  "بريد إلكتروني":   "send",
+  "ملف تعريف":       "social",
 };
-
 
 
 const STRUCTURAL_MAP_AR: Record<string, TokenType> = {
@@ -1936,10 +2017,23 @@ export function tokenizeAr(sentence: string): CSTToken[] {
     // Uses _ROOT_MAP_NORM / _DIRECT_FIELD_NORM built at module init to handle
     // normalization variants (ى→ي, آ/أ→ا, etc.) automatically.
     const stem  = segment(word);
-    const root  = _ROOT_MAP_NORM[stem] ?? _ROOT_MAP_NORM[word];
-    const field = root
+    let root  = _ROOT_MAP_NORM[stem] ?? _ROOT_MAP_NORM[word];
+    let field = root
       ? ROOT_FIELD[root]
       : (_DIRECT_FIELD_NORM[stem] ?? _DIRECT_FIELD_NORM[word]);
+
+    // Fallback: try stripping augmented-verb prefixes (Form V ت, Form X است, 1st-person ا)
+    // This handles أريد → ريد, تتبع → تبع, استرداد → رداد-like stems, احتاج → حتاج etc.
+    if (!field) {
+      const aug = stripVerbAug(stem);
+      if (aug !== stem) {
+        const augRoot = _ROOT_MAP_NORM[aug];
+        const augField = augRoot
+          ? ROOT_FIELD[augRoot]
+          : _DIRECT_FIELD_NORM[aug];
+        if (augField) { root = augRoot; field = augField; }
+      }
+    }
 
     // Check role on both the stem AND the original normalized word.
     // Necessary because segment() may strip a meaningful prefix (e.g. ك from كاتب)

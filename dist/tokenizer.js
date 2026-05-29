@@ -633,7 +633,7 @@ exports.SEMANTIC_FIELDS = {
     bug: "tech",
     async: "tech",
     await: "tech",
-    library: "tech",
+    library: "write",
     framework: "tech",
     api: "tech",
     loop: "tech",
