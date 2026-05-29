@@ -5,9 +5,31 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.6.0] — 2026-05-29
+
+### Added — English tokenizer CST-parity upgrade
+
+- **Richer suffix taxonomy** — 8 new entries in `SUFFIX_ROLES` (longest-first):
+  - `ification` / `ization` → `"process"` — _simplification_, _digitization_, _centralization_
+  - `ifier` / `izer` → `"causer"` — _purifier_, _amplifier_, _organizer_, _stabilizer_
+  - `ify` / `ize` → `"causer"` — _simplify_, _clarify_, _modernize_, _realize_
+  - `ant` → `"seeker"` — _applicant_, _aspirant_, _contestant_
+  - `aholic` → `"intensifier"`, `seeker` / `hunter` → `"seeker"`, `master` → `"intensifier"`
+
+- **New prefix roles** — `over` → `"excess"` (_overcharge_, _overload_), `hyper` → `"excess"` (_hyperactive_, _hypersensitive_)
+
+- **Nested suffix decomposition in `resolveField()`** — resolves two-suffix derivations without a lemmatizer:
+  - e.g. `"readable"` → strip `able` → `"read"` → `know` field
+  - e.g. `"disconnection"` → strip `tion` → `"disconnec"` → strip `dis` via prefix fallback → `"connect"` field
+
+- **Prefix-strip fallback in `resolveField()`** — after all suffix attempts fail, strips known prefix and resolves bare stem (e.g. `"rewrite"` → `write`, `"disorganize"` → `work`)
+
+---
+
 ## [1.5.0] — 2026-05-29
 
 ### Fixed — Arabic tokenizer production coverage (43% → 100% on real-world agent inputs)
+
 - **Possessive `ي` suffix stripping** — `حسابي` / `هاتفي` now correctly resolve to their root (was being ignored as LIT)
 - **Accusative alef stripping** — tanwin-fath nouns like `موعداً` normalize to `موعدا` then correctly strip to `موعد` for lookup
 - **Form VIII verb recognition** — explicit entries for `احتاج`/`يحتاج` (need), `اختار` (choose), `انتظر` (wait), `اشترك`/`يشترك` (subscribe), `اكتسب`/`يكتسب` (acquire)
@@ -17,6 +39,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **`library → write`** — corrected wrong field mapping (`tech` was a programmer reflex; CST correctly maps it to `write`)
 
 ### Added
+
 - `stripVerbAug()` — pure-TypeScript augmented-verb prefix stripper (Form V `ت`, Form X `است`, 1st-person `ا`) as a lookup fallback; zero dependencies
 - `VERB_AUG_PREFIXES` constant for the prefix list
 
@@ -25,6 +48,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.4.0] — 2026-05-29
 
 ### Added
+
 - **English vocabulary expanded to 2,698 entries** — imported all 2,402 CST `semantic_fields.json` entries; deduplicated against the existing 883 entries yielding 1,815 net additions
 - **Two new semantic fields: `take` and `change`** — previously unmapped CST fields now have first-class routing in both English and Arabic
 - **Arabic ROOT_MAP expanded to 1,711 entries** — 321 new trilateral roots from CST `ARABIC_ROOT_TO_FIELD`, each generating base, present-tense (يـ) and masdar (ـة) forms
@@ -34,10 +58,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **ROOT_FIELD expanded to 416 entries** — new root codes for all new fields
 
 ### Changed
+
 - Semantic field count: **40 → 42** (added `take`, `change`)
 - README updated to reflect 42 fields and 2,100+ Arabic stems
 
 ### Tests
+
 - **90 tests passing** (all existing tests preserved, no regressions)
 
 ---
@@ -45,6 +71,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.3.0] — 2026-05-29
 
 ### Added
+
 - **Arabic tokenizer feature parity with English** — `tokenizeAr()` now matches English behaviour across all 18 token types
 - **`COMPOUND_FIELDS_AR`** — 50+ Arabic bigram phrases pre-scanned before single-word lookup (`ذكاء اصطناعي → tech`, `كرة قدم → sport`, `صحة نفسية → health`, `تغير مناخ → weather`, …)
 - **Pre-normalized lookup tables** (`_ROOT_MAP_NORM`, `_DIRECT_FIELD_NORM`, `_STRUCTURAL_NORM`, `_RELATION_NORM`) — built at module-init so ى/ي, آ/أ/إ/ا and other normalization variants resolve correctly without explicit handling at call sites
@@ -52,11 +79,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **39 Arabic tokenizer tests** in `tests/tokenizer-ar.test.ts` covering all 18 token types, compound phrases, morphological roles, normalization resilience, and edge cases
 
 ### Changed
+
 - Multi-word entries removed from `ROOT_MAP` and `DIRECT_FIELD` (they were unreachable after word-splitting); moved to `COMPOUND_FIELDS_AR`
 - `tokenizeAr()` now applies a compound bigram pre-scan loop identical in structure to the English tokenizer
 - Role detection now tries `detectRoleAr(stem) ?? detectRoleAr(word)` to catch cases where segmentation strips a pattern-bearing prefix
 
 ### Tests
+
 - **90 tests passing** (51 existing + 39 new Arabic tests)
 
 ---
@@ -64,6 +93,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.2.1] — 2026-05-28
 
 ### Fixed
+
 - 68 duplicate key errors in `STRUCTURAL_MAP_AR` resolved via deduplication
 - `HA`/`HAR` variable redeclaration conflict in `detectRoleAr()` fixed
 - `STRUCTURAL_MAP_AR` rewritten with real Arabic Unicode characters and MODAL entries (يمكن, يجب, ربما, …)
@@ -73,6 +103,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.2.0] — 2026-05-27
 
 ### Added
+
 - **Arabic tokenizer** (`src/tokenizer-ar.ts`) — `tokenizeAr()` / `tokenStreamAr()`
   - `normalize()` — strips diacritics, normalizes variant alef forms, tatweel
   - `segment()` — strips و/ف conjunctions, ب/ل/ك prepositions, ال article, object suffixes
@@ -92,6 +123,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.1.0] — 2026-05-20
 
 ### Added
+
 - **Compound phrase support** (English) — `COMPOUND_FIELDS` with 45+ bigrams pre-scanned before single-word lookup (`machine learning → know`, `blood pressure → health`, `stock market → trade`, …)
 - **Prefix role detection** — `un`/`non`/`dis` → negate, `re` → repeat, `pre` → before, `mis` → wrong, `co` → mutual, `out` → exceed
 - **Expanded `SEMANTIC_FIELDS`** — 700+ entries across all 40 fields
@@ -99,6 +131,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **`HDCAgent.retrieve()`** — episodic memory retrieval by cosine similarity
 
 ### Changed
+
 - `RELATION_MAP` expanded to 40+ English prepositions
 - `STRUCTURAL_MAP` now includes negated contractions (can't, won't, don't, isn't, …)
 
