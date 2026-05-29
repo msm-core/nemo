@@ -1,5 +1,7 @@
 # nemo-ai
 
+> **N**eural **E**volving **M**emory **O**bject — but also the fish 🐟
+
 > Evolving semantic memory and intent router for AI agent pipelines.
 
 [![npm](https://img.shields.io/npm/v/nemo-ai)](https://www.npmjs.com/package/nemo-ai)
@@ -18,7 +20,7 @@ npm install nemo-ai
 
 nemo sits in front of your LLM (or between agent layers) and answers one question fast:
 
-> *"Do I know what this input means, and where should it route?"*
+> _"Do I know what this input means, and where should it route?"_
 
 ```
 raw text  (English or Arabic)
@@ -48,14 +50,14 @@ The agent **updates itself** with every accepted input — no retraining, no mod
 ```ts
 import { pipeline, HDCAgent, HDVEncoder, tokenize } from "nemo-ai";
 
-const encoder = new HDVEncoder();   // seeded — deterministic vector space
-const agent   = new HDCAgent();
+const encoder = new HDVEncoder(); // seeded — deterministic vector space
+const agent = new HDCAgent();
 
 // Train on a few examples
 const training: Record<string, string[]> = {
-  tech:    ["fix the bug", "write python code", "debug error"],
+  tech: ["fix the bug", "write python code", "debug error"],
   weather: ["rain forecast", "temperature tomorrow", "storm warning"],
-  food:    ["pasta recipe", "how to cook chicken", "vegan dinner ideas"],
+  food: ["pasta recipe", "how to cook chicken", "vegan dinner ideas"],
 };
 
 for (const [field, phrases] of Object.entries(training)) {
@@ -68,10 +70,10 @@ agent.calibrate();
 
 // Classify
 const result = pipeline("fix the syntax error in my code", agent, encoder);
-console.log(result.classification.field);       // "tech"
-console.log(result.classification.confidence);  // 0.78
-console.log(result.gate);                       // "skip_llm"
-console.log(result.tool);                       // "code_assistant"
+console.log(result.classification.field); // "tech"
+console.log(result.classification.confidence); // 0.78
+console.log(result.gate); // "skip_llm"
+console.log(result.tool); // "code_assistant"
 ```
 
 ---
@@ -95,6 +97,7 @@ tokenStreamAr("لماذا فشل النظام؟");
 ```
 
 The Arabic tokenizer includes:
+
 - **Clitic segmentation** — strips و/ف conjunctions, ب/ل/ك prepositions, ال article, object suffixes
 - **Root-based lookup** — 2,100+ stems → 42 semantic fields via trilateral root codes
 - **Compound phrases** — 50+ bigrams (`ذكاء اصطناعي` → `tech`, `كرة قدم` → `sport`, …)
@@ -119,13 +122,13 @@ async function route(
   const result = pipeline(input, agent, encoder);
 
   if (result.gate === "skip_llm") {
-    return callTool(result.tool, input);          // confident — bypass LLM
+    return callTool(result.tool, input); // confident — bypass LLM
   }
   if (result.gate === "llm_assist") {
     const system = `Intent: ${result.classification.field}. Tool: ${result.tool}.`;
-    return llm(input, { system });                // steer LLM with context
+    return llm(input, { system }); // steer LLM with context
   }
-  return llm(input);                              // unknown — full LLM
+  return llm(input); // unknown — full LLM
 }
 ```
 
@@ -138,10 +141,10 @@ import { NemoSession } from "nemo-ai";
 
 const session = await NemoSession.load("./memory.nemo.json", {
   tools: {
-    tech:    (input) => codeAssistant(input),
+    tech: (input) => codeAssistant(input),
     weather: (input) => weatherService(input),
   },
-  autoSaveEvery: 10,   // save every 10 updates
+  autoSaveEvery: 10, // save every 10 updates
 });
 
 const result = session.run(userInput);
@@ -155,7 +158,7 @@ await session.teach("blood pressure monitor", "health");
 
 ```ts
 const [queryHV] = encoder.encode(tokenize("how do I fix this"));
-const episodes  = agent.retrieve(queryHV, 3);
+const episodes = agent.retrieve(queryHV, 3);
 
 for (const ep of episodes) {
   console.log(ep.meta?.text, "→", ep.sim.toFixed(3));
@@ -173,7 +176,7 @@ fs.writeFileSync("memory.nemo.json", JSON.stringify(agent.toJSON()));
 
 // Import in another process / service
 const agentB = HDCAgent.fromJSON(
-  JSON.parse(fs.readFileSync("memory.nemo.json", "utf8"))
+  JSON.parse(fs.readFileSync("memory.nemo.json", "utf8")),
 );
 ```
 
@@ -185,55 +188,55 @@ const agentB = HDCAgent.fromJSON(
 
 Full stack in one call. English only — for Arabic use `tokenizeAr` then `encoder.encode`.
 
-| Field | Type | Description |
-|---|---|---|
-| `tokens` | `CSTToken[]` | CST token array |
-| `frame` | `ReasoningFrame` | intent frame (is_question, has_negation, …) |
-| `classification` | `ClassifyResult` | field, confidence, top3 |
-| `tool` | `string` | mapped tool name |
-| `gate` | `GateDecision` | `skip_llm` / `llm_assist` / `full_llm` |
+| Field            | Type             | Description                                 |
+| ---------------- | ---------------- | ------------------------------------------- |
+| `tokens`         | `CSTToken[]`     | CST token array                             |
+| `frame`          | `ReasoningFrame` | intent frame (is_question, has_negation, …) |
+| `classification` | `ClassifyResult` | field, confidence, top3                     |
+| `tool`           | `string`         | mapped tool name                            |
+| `gate`           | `GateDecision`   | `skip_llm` / `llm_assist` / `full_llm`      |
 
 ### `HDCAgent`
 
-| Method | Description |
-|---|---|
-| `observe(hv, field)` | Accumulate a hypervector during training |
-| `calibrate()` | Compute per-field thresholds — call once after training |
-| `classify(hv)` | Returns `ClassifyResult` |
-| `update(hv, field, meta?)` | Conditional self-update at inference time |
-| `feedback(hv, field, meta?)` | Unconditional ground-truth update |
-| `step(hv, meta, groundTruth?)` | classify + update in one call |
-| `retrieve(queryHV, k, field?)` | Return k nearest episodes from memory |
-| `toJSON()` | Serialize full state to a plain JSON-safe object |
-| `HDCAgent.fromJSON(state)` | Restore from serialized state |
-| `snapshot()` | Return field counts and memory stats |
+| Method                         | Description                                             |
+| ------------------------------ | ------------------------------------------------------- |
+| `observe(hv, field)`           | Accumulate a hypervector during training                |
+| `calibrate()`                  | Compute per-field thresholds — call once after training |
+| `classify(hv)`                 | Returns `ClassifyResult`                                |
+| `update(hv, field, meta?)`     | Conditional self-update at inference time               |
+| `feedback(hv, field, meta?)`   | Unconditional ground-truth update                       |
+| `step(hv, meta, groundTruth?)` | classify + update in one call                           |
+| `retrieve(queryHV, k, field?)` | Return k nearest episodes from memory                   |
+| `toJSON()`                     | Serialize full state to a plain JSON-safe object        |
+| `HDCAgent.fromJSON(state)`     | Restore from serialized state                           |
+| `snapshot()`                   | Return field counts and memory stats                    |
 
 ### `HDVEncoder`
 
-| Method | Description |
-|---|---|
-| `encode(tokens)` | Returns `[Float32Array, dominantField \| null]` |
-| `atomState()` | Export atom hypervectors as `Record<string, number[]>` |
-| `loadAtomState(state)` | Restore a saved atom space |
+| Method                 | Description                                            |
+| ---------------------- | ------------------------------------------------------ |
+| `encode(tokens)`       | Returns `[Float32Array, dominantField \| null]`        |
+| `atomState()`          | Export atom hypervectors as `Record<string, number[]>` |
+| `loadAtomState(state)` | Restore a saved atom space                             |
 
 ### Tokenizers
 
-| Export | Language | Description |
-|---|---|---|
-| `tokenize(text)` | English | Returns `CSTToken[]` |
-| `tokenStream(text)` | English | Returns token values as a space-joined string |
-| `tokenizeAr(text)` | Arabic | Returns `CSTToken[]` — same interface |
-| `tokenStreamAr(text)` | Arabic | Returns token values as a space-joined string |
-| `COMPOUND_FIELDS` | English | Bigram → field map (exported for extension) |
-| `COMPOUND_FIELDS_AR` | Arabic | Bigram → field map (exported for extension) |
+| Export                | Language | Description                                   |
+| --------------------- | -------- | --------------------------------------------- |
+| `tokenize(text)`      | English  | Returns `CSTToken[]`                          |
+| `tokenStream(text)`   | English  | Returns token values as a space-joined string |
+| `tokenizeAr(text)`    | Arabic   | Returns `CSTToken[]` — same interface         |
+| `tokenStreamAr(text)` | Arabic   | Returns token values as a space-joined string |
+| `COMPOUND_FIELDS`     | English  | Bigram → field map (exported for extension)   |
+| `COMPOUND_FIELDS_AR`  | Arabic   | Bigram → field map (exported for extension)   |
 
 ### Gate thresholds
 
-| Gate | Confidence | Meaning |
-|---|---|---|
-| `skip_llm` | ≥ 0.55 | nemo is confident — skip the LLM entirely |
-| `llm_assist` | 0.35 – 0.55 | Inject semantic context into the LLM prompt |
-| `full_llm` | < 0.35 | Unknown input — route to the LLM without hints |
+| Gate         | Confidence  | Meaning                                        |
+| ------------ | ----------- | ---------------------------------------------- |
+| `skip_llm`   | ≥ 0.55      | nemo is confident — skip the LLM entirely      |
+| `llm_assist` | 0.35 – 0.55 | Inject semantic context into the LLM prompt    |
+| `full_llm`   | < 0.35      | Unknown input — route to the LLM without hints |
 
 ```ts
 import { GATE_HIGH, GATE_MED } from "nemo-ai";
@@ -265,26 +268,26 @@ await redis.set(`nemo:${userId}`, JSON.stringify(agent.toJSON()));
 
 nemo's CST (Conceptual Semantic Tokenizer) produces 18 token types shared by both languages:
 
-| Type | Trigger | Example |
-|---|---|---|
-| `CONCEPT` | Semantic field match | `CONCEPT:tech`, `CONCEPT:health` |
-| `ROLE` | Morphological pattern | `ROLE:agent`, `ROLE:patient` |
-| `REL` | Preposition | `REL:in`, `REL:to`, `REL:from` |
-| `NEG` | Negation word | not, لا, لم |
-| `QUERY` | Question mark | ?, ؟ |
-| `WHAT_Q` | What-question | what, ماذا |
-| `WHO_Q` | Who-question | who, من |
-| `WHERE_Q` | Where-question | where, أين |
-| `WHEN_Q` | When-question | when, متى |
-| `WHY_Q` | Why-question | why, لماذا |
-| `HOW_Q` | How-question | how, كيف |
-| `WHICH_Q` | Which-question | which, أي |
-| `MODAL` | Ability/obligation | should, يمكن, يجب |
-| `COND` | Condition | if, إذا |
-| `CAUSE` | Causation | because, لأن |
-| `FUTURE` | Future marker | will, سـ prefix |
-| `PAST` | Past marker | was/were, كان |
-| `LIT` | No match (fallback) | unknown terms |
+| Type      | Trigger               | Example                          |
+| --------- | --------------------- | -------------------------------- |
+| `CONCEPT` | Semantic field match  | `CONCEPT:tech`, `CONCEPT:health` |
+| `ROLE`    | Morphological pattern | `ROLE:agent`, `ROLE:patient`     |
+| `REL`     | Preposition           | `REL:in`, `REL:to`, `REL:from`   |
+| `NEG`     | Negation word         | not, لا, لم                      |
+| `QUERY`   | Question mark         | ?, ؟                             |
+| `WHAT_Q`  | What-question         | what, ماذا                       |
+| `WHO_Q`   | Who-question          | who, من                          |
+| `WHERE_Q` | Where-question        | where, أين                       |
+| `WHEN_Q`  | When-question         | when, متى                        |
+| `WHY_Q`   | Why-question          | why, لماذا                       |
+| `HOW_Q`   | How-question          | how, كيف                         |
+| `WHICH_Q` | Which-question        | which, أي                        |
+| `MODAL`   | Ability/obligation    | should, يمكن, يجب                |
+| `COND`    | Condition             | if, إذا                          |
+| `CAUSE`   | Causation             | because, لأن                     |
+| `FUTURE`  | Future marker         | will, سـ prefix                  |
+| `PAST`    | Past marker           | was/were, كان                    |
+| `LIT`     | No match (fallback)   | unknown terms                    |
 
 ---
 
@@ -331,13 +334,13 @@ nemo's tokenizer is built on the linguistic principles of **Contextual Semantic 
 
 ### What nemo uses from CST
 
-| CST concept | nemo implementation |
-|---|---|
-| Semantic fields (~45 universal) | 42 shared fields, same names |
-| Morphological role detection | `ROLE:agent` / `patient` / `process` / `place` |
-| Triconsonantal root algebra | `ROOT_MAP` → `ROOT_FIELD` for Arabic stems |
+| CST concept                                    | nemo implementation                               |
+| ---------------------------------------------- | ------------------------------------------------- |
+| Semantic fields (~45 universal)                | 42 shared fields, same names                      |
+| Morphological role detection                   | `ROLE:agent` / `patient` / `process` / `place`    |
+| Triconsonantal root algebra                    | `ROOT_MAP` → `ROOT_FIELD` for Arabic stems        |
 | Structural markers (negation, tense, modality) | `NEG`, `MODAL`, `PAST`, `FUTURE`, `COND`, `CAUSE` |
-| Cross-lingual field parity | Same 42 fields for English and Arabic |
+| Cross-lingual field parity                     | Same 42 fields for English and Arabic             |
 
 ### What is different
 
