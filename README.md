@@ -321,6 +321,34 @@ npm run build  # compiles to dist/
 
 ---
 
+## Based on CST
+
+nemo's tokenizer is built on the linguistic principles of **Contextual Semantic Tokenization (CST)** — a linguistically-grounded alternative to subword segmentation, originally developed for language model training.
+
+> CST encodes semantic field and morphological role directly into every token. Arabic morphology defines the algebraic foundation: root × pattern = concept. The root ك-ت-ب (k-t-b, write) + pattern فَاعِل (agent) = كاتب (writer). CST generalises this algebra across languages.
+
+**Research project:** [github.com/emadjumaah/cst](https://github.com/emadjumaah/cst)
+
+### What nemo uses from CST
+
+| CST concept | nemo implementation |
+|---|---|
+| Semantic fields (~45 universal) | 40 shared fields, same names |
+| Morphological role detection | `ROLE:agent` / `patient` / `process` / `place` |
+| Triconsonantal root algebra | `ROOT_MAP` → `ROOT_FIELD` for Arabic stems |
+| Structural markers (negation, tense, modality) | `NEG`, `MODAL`, `PAST`, `FUTURE`, `COND`, `CAUSE` |
+| Cross-lingual field parity | Same 40 fields for English and Arabic |
+
+### What is different
+
+The full CST research tokenizer runs a 7-stage pipeline (including named-entity detection) and produces `CMP:write:agent` / `ROOT:move` / `STR:negation` tokens — designed for language model training benchmarks (35–46% BPC reduction over SentencePiece BPE).
+
+nemo implements a **runtime-optimized subset** of those principles: a 4-stage pipeline (normalize → structural detect → clitic segment → root/field lookup), with a flattened token format (`CONCEPT:write` + `ROLE:agent`) that maps efficiently into HDC hypervectors. The goal is sub-millisecond classification in agent pipelines, not LM training.
+
+If you need the full research tokenizer for training or evaluation, see the [CST repository](https://github.com/emadjumaah/cst).
+
+---
+
 ## License
 
 MIT
