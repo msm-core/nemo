@@ -8,7 +8,7 @@
 [![license](https://img.shields.io/npm/l/nemo-ai)](LICENSE)
 [![tests](https://img.shields.io/badge/tests-90%20passing-brightgreen)](#)
 
-Sub-millisecond intent classification, pure TypeScript, zero dependencies, no GPU, no embedding model. Works in Node.js and the browser. Supports **English and Arabic** out of the box. Learns with every interaction.
+Sub-millisecond intent classification using **Hyperdimensional Computing (MAP-HDC)** — pure TypeScript, zero dependencies, no GPU, no embedding model. Works in Node.js and the browser. Supports **English and Arabic** out of the box. Learns with every interaction.
 
 ```bash
 npm install nemo-ai

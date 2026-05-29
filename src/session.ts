@@ -61,8 +61,19 @@ export interface SessionOptions {
   tools?: ToolMap;
   /** Path to persist state. Required for save() / auto-save. */
   filePath?: string;
-  /** Auto-save every N run() calls (0 = disabled). */
+  /**
+   * Auto-save every N teach() calls — teach() is when HDC state actually changes.
+   * Defaults to 100 when filePath is provided, 0 (disabled) otherwise.
+   * Set to 0 to disable and manage saves manually.
+   */
   autoSaveEvery?: number;
+  /**
+   * Register SIGTERM / SIGINT handlers to flush state to disk on process exit.
+   * Node.js only — silently ignored in browser environments.
+   * Defaults to true when filePath is provided.
+   * Set to false when the adapter layer manages shutdown saves instead.
+   */
+  shutdownHook?: boolean;
 }
 
 // ── NemoSession ──────────────────────────────────────────────────────────────
@@ -74,25 +85,76 @@ export class NemoSession {
 
   private _filePath?: string;
   private _autoEvery: number;
-  private _runCount = 0;
+  private _teachCount = 0;
 
   constructor(opts: SessionOptions) {
     this.agent = opts.agent;
     this.encoder = opts.encoder;
     this.tools = opts.tools ?? {};
     this._filePath = opts.filePath;
-    this._autoEvery = opts.autoSaveEvery ?? 0;
+    // Default: auto-save every 100 teach() calls when a filePath is configured
+    this._autoEvery = opts.autoSaveEvery ?? (opts.filePath ? 100 : 0);
+
+    // Shutdown hook: flush to disk on SIGTERM / SIGINT (Node.js only)
+    const enableHook = opts.shutdownHook ?? !!opts.filePath;
+    if (
+      enableHook &&
+      typeof process !== "undefined" &&
+      typeof (process as NodeJS.Process).once === "function"
+    ) {
+      const onExit = () => {
+        try {
+          this.save();
+        } catch {
+          /* best effort — never throw on exit */
+        }
+      };
+      process.once("SIGTERM", onExit);
+      process.once("SIGINT", onExit);
+    }
   }
 
-  // ── Factory ────────────────────────────────────────────────────────────────
+  // ── Factories ──────────────────────────────────────────────────────────────
 
   /** Load a persisted session. Optionally attach tools (functions aren't serialised). */
   static load(
     filePath: string,
-    opts: { tools?: ToolMap; autoSaveEvery?: number } = {},
+    opts: {
+      tools?: ToolMap;
+      autoSaveEvery?: number;
+      shutdownHook?: boolean;
+    } = {},
   ): NemoSession {
     const { agent, encoder } = loadFromFile(filePath);
     return new NemoSession({ agent, encoder, filePath, ...opts });
+  }
+
+  /**
+   * Load a persisted session if the file exists, otherwise start fresh.
+   * The simplest way to initialise nemo — works on first run and every restart.
+   *
+   * @example
+   *   const session = NemoSession.loadOrCreate("./.nemo.json");
+   *   // auto-saves every 100 teach() calls and on SIGTERM — zero config needed
+   */
+  static loadOrCreate(
+    filePath: string,
+    opts: {
+      tools?: ToolMap;
+      autoSaveEvery?: number;
+      shutdownHook?: boolean;
+    } = {},
+  ): NemoSession {
+    try {
+      return NemoSession.load(filePath, opts);
+    } catch (e: unknown) {
+      if ((e as NodeJS.ErrnoException).code === "ENOENT") {
+        const agent = new HDCAgent();
+        const encoder = new HDVEncoder();
+        return new NemoSession({ agent, encoder, filePath, ...opts });
+      }
+      throw e;
+    }
   }
 
   // ── Core ───────────────────────────────────────────────────────────────────
@@ -138,11 +200,6 @@ export class NemoSession {
       response = await this.tools[tool](text, base);
     }
 
-    if (this._autoEvery > 0) {
-      this._runCount++;
-      if (this._runCount % this._autoEvery === 0) this.save();
-    }
-
     return { ...base, response };
   }
 
@@ -159,6 +216,17 @@ export class NemoSession {
     const tokens = tokenize(text);
     const [hv] = this.encoder.encode(tokens);
     this.agent.feedback(hv, confirmedField, { text, ...meta });
+    // Auto-save after N teach() calls (state changes only happen here, not in run())
+    if (this._autoEvery > 0) {
+      this._teachCount++;
+      if (this._teachCount % this._autoEvery === 0) {
+        try {
+          this.save();
+        } catch {
+          /* non-fatal */
+        }
+      }
+    }
   }
 
   // ── Persistence ────────────────────────────────────────────────────────────

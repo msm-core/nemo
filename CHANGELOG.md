@@ -5,6 +5,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.7.0] — 2026-05-29
+
+### Added — Smart persistence: auto-save + shutdown hook + loadOrCreate
+
+- `NemoSession.loadOrCreate(filePath, opts)` — new factory: loads saved state if file
+  exists, creates a fresh session if not (ENOENT). Eliminates the try/catch boilerplate
+  every consumer had to write.
+- `SessionOptions.shutdownHook` — when `filePath` is provided this defaults to `true`,
+  registering `SIGTERM` / `SIGINT` handlers that flush state to disk on process exit.
+  Set to `false` to delegate shutdown saves to the adapter layer.
+- `SessionOptions.autoSaveEvery` now defaults to `100` when `filePath` is provided
+  (was always `0`). Zero-config = safe default: a session with a file path saves itself.
+- Auto-save counter moved from `run()` to `teach()` — `teach()` is the only call that
+  mutates HDC prototype state; tracking it avoids unnecessary writes on query-only traffic.
+
+---
+
 ## [1.6.0] — 2026-05-29
 
 ### Added — English tokenizer CST-parity upgrade
