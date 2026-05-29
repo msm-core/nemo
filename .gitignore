@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Runtime state files
+*.nemo.json
+*.nemo.bin
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+
+# Editor
+.DS_Store
+.vscode/
+*.swp
+*.swo
+
+# Test coverage
+coverage/
