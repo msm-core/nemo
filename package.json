@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://github.com/emad/nemo-ts.git"
+    "url": "https://github.com/msm-core/nemo.git"
   },
   "keywords": [
     "hdc",
@@ -28,7 +28,11 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md",
+    "ARCHITECTURE.md",
+    "AGENTS.md",
+    "LICENSE"
   ],
   "devDependencies": {
     "@types/jest": "^29.5.0",
