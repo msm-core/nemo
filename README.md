@@ -134,24 +134,27 @@ async function route(
 
 ### Persistent session (recommended)
 
-`NemoSession` wraps encoder + agent + tools into one persistent unit with auto-save:
+`NemoSession` wraps encoder + agent + tools into one persistent unit with built-in auto-save:
 
 ```ts
 import { NemoSession } from "nemo-ai";
 
-const session = await NemoSession.load("./memory.nemo.json", {
+// Recommended: loads saved state if file exists, starts fresh if not.
+// Auto-saves every 100 teach() calls and flushes on SIGTERM — zero config needed.
+const session = NemoSession.loadOrCreate("./memory.nemo.json", {
   tools: {
     tech: (input) => codeAssistant(input),
     weather: (input) => weatherService(input),
   },
-  autoSaveEvery: 10, // save every 10 updates
 });
 
-const result = session.run(userInput);
-await session.save();
+const result = await session.run(userInput);
 
-// Teach from confirmed ground truth
-await session.teach("blood pressure monitor", "health");
+// Teach from confirmed ground truth — triggers auto-save counter
+session.teach("blood pressure monitor", "health");
+
+// Manual flush at any time (e.g. before a planned restart)
+session.save();
 ```
 
 ### Episodic memory retrieval
@@ -243,16 +246,60 @@ import { GATE_HIGH, GATE_MED } from "nemo-ai";
 // GATE_HIGH = 0.55,  GATE_MED = 0.35
 ```
 
-### Persistence helpers (`persist.ts`)
+### `NemoSession` factories
+
+| Factory                                              | When to use                                                                             |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `NemoSession.loadOrCreate(path, opts?)`              | **Recommended.** Restores saved state if the file exists; starts fresh if not (ENOENT). |
+| `NemoSession.load(path, opts?)`                      | File **must** exist — throws if missing. Use when a missing file is a deployment error. |
+| `new NemoSession({ agent, encoder, filePath, ... })` | Manual construction from pre-built instances.                                           |
+
+### `NemoSession` persistence options
+
+```ts
+NemoSession.loadOrCreate("./.nemo.json", {
+  autoSaveEvery: 100,   // save every N teach() calls (default 100 when filePath given, 0 otherwise)
+  shutdownHook: true,   // flush on SIGTERM/SIGINT — default true when filePath given
+  tools: { ... },       // tool functions (not serialised, reattach after load)
+});
+```
+
+| Option          | Default  | Description                                                                        |
+| --------------- | -------- | ---------------------------------------------------------------------------------- |
+| `autoSaveEvery` | `100` ¹  | Save every N `teach()` calls. `teach()` is the only call that mutates HDC state.   |
+| `shutdownHook`  | `true` ¹ | Register `SIGTERM`/`SIGINT` handlers to flush state on process exit. Node.js only. |
+
+¹ When `filePath` is provided. Without a path both default to `0`/`false` — suitable for browser environments.
+
+### Manual save / custom strategies
+
+```ts
+// Explicit save at any point
+session.save();
+
+// Save to a different path (e.g. snapshot before upgrade)
+session.save("./memory.nemo.backup.json");
+
+// High-traffic: disable built-in auto-save, use your own interval
+const session = NemoSession.loadOrCreate("./.nemo.json", {
+  autoSaveEvery: 0,
+  shutdownHook: false,
+});
+setInterval(() => session.save(), 5 * 60_000); // every 5 min
+process.once("SIGTERM", () => session.save());
+```
+
+### Low-level persistence helpers
 
 ```ts
 import { saveToFile, loadFromFile } from "nemo-ai";
 
-await saveToFile("./memory.nemo.json", agent, encoder, { version: "1.3.0" });
-const { agent, encoder, meta } = await loadFromFile("./memory.nemo.json");
+// Save agent + encoder directly
+saveToFile("./memory.nemo.json", agent, encoder, { myMeta: "v2" });
+const { agent, encoder, meta } = loadFromFile("./memory.nemo.json");
 ```
 
-State is plain JSON — drop it anywhere:
+State is a plain JSON file — portable to any store:
 
 ```ts
 // Database column
@@ -261,6 +308,17 @@ await db.run("UPDATE sessions SET state = ?", [JSON.stringify(agent.toJSON())]);
 // Redis
 await redis.set(`nemo:${userId}`, JSON.stringify(agent.toJSON()));
 ```
+
+### What is inside `.nemo.json`
+
+| Key            | Contents                                                      | Notes                                                    |
+| -------------- | ------------------------------------------------------------- | -------------------------------------------------------- |
+| `agent`        | Per-field prototype hypervectors + thresholds + episode store | Grows with `teach()` calls                               |
+| `encoderAtoms` | Random atom space (seeded at `SEED=42`)                       | Deterministic — could be skipped, saved for fast startup |
+| `version`      | Integer schema version                                        | Currently `1`                                            |
+| `savedAt`      | ISO timestamp                                                 | Informational only                                       |
+
+The built-in vocabulary (keyword tables in `tokenizer.ts`) is **not** in the file — it is compiled into the package. Only the learned improvements from `teach()` are persisted. Losing the file means starting fresh with the built-in vocabulary, not losing the model.
 
 ---
 

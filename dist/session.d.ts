@@ -44,8 +44,19 @@ export interface SessionOptions {
     tools?: ToolMap;
     /** Path to persist state. Required for save() / auto-save. */
     filePath?: string;
-    /** Auto-save every N run() calls (0 = disabled). */
+    /**
+     * Auto-save every N teach() calls — teach() is when HDC state actually changes.
+     * Defaults to 100 when filePath is provided, 0 (disabled) otherwise.
+     * Set to 0 to disable and manage saves manually.
+     */
     autoSaveEvery?: number;
+    /**
+     * Register SIGTERM / SIGINT handlers to flush state to disk on process exit.
+     * Node.js only — silently ignored in browser environments.
+     * Defaults to true when filePath is provided.
+     * Set to false when the adapter layer manages shutdown saves instead.
+     */
+    shutdownHook?: boolean;
 }
 export declare class NemoSession {
     readonly agent: HDCAgent;
@@ -53,12 +64,26 @@ export declare class NemoSession {
     readonly tools: ToolMap;
     private _filePath?;
     private _autoEvery;
-    private _runCount;
+    private _teachCount;
     constructor(opts: SessionOptions);
     /** Load a persisted session. Optionally attach tools (functions aren't serialised). */
     static load(filePath: string, opts?: {
         tools?: ToolMap;
         autoSaveEvery?: number;
+        shutdownHook?: boolean;
+    }): NemoSession;
+    /**
+     * Load a persisted session if the file exists, otherwise start fresh.
+     * The simplest way to initialise nemo — works on first run and every restart.
+     *
+     * @example
+     *   const session = NemoSession.loadOrCreate("./.nemo.json");
+     *   // auto-saves every 100 teach() calls and on SIGTERM — zero config needed
+     */
+    static loadOrCreate(filePath: string, opts?: {
+        tools?: ToolMap;
+        autoSaveEvery?: number;
+        shutdownHook?: boolean;
     }): NemoSession;
     /**
      * Process one user utterance through the full pipeline.
