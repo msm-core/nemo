@@ -2806,6 +2806,16 @@ exports.SEMANTIC_FIELDS = {
 };
 // Suffix → role (longest-first)
 const SUFFIX_ROLES = [
+    // ── Arabic-origin أوزان roles — longest compound suffixes first ──
+    ["ification", "process"], // simplification, electrification, qualification
+    ["ization", "process"], // modernization, digitization, centralization
+    ["aholic", "intensifier"], // workaholic, shopaholic (compulsive agent)
+    ["seeker", "seeker"], // jobseeker, peaceseeker, truthseeker
+    ["hunter", "seeker"], // headhunter, bargainhunter
+    ["master", "intensifier"], // webmaster, grandmaster, toastmaster
+    ["ifier", "causer"], // simplifier, purifier, amplifier, clarifier
+    ["izer", "causer"], // modernizer, organizer, stabilizer
+    // ── Standard English suffixes ──
     ["tion", "instance"],
     ["sion", "instance"],
     ["ment", "instance"],
@@ -2824,6 +2834,9 @@ const SUFFIX_ROLES = [
     ["ist", "agent"],
     ["ian", "agent"],
     ["ity", "state"],
+    ["ify", "causer"], // simplify, clarify, modify (causative verb)
+    ["ize", "causer"], // organize, modernize, realize (causative verb)
+    ["ant", "seeker"], // applicant, aspirant, contestant
     ["er", "agent"],
     ["or", "agent"],
     ["ee", "patient"],
@@ -2840,6 +2853,8 @@ const PREFIX_ROLES = {
     re: "repeat",
     pre: "before",
     mis: "wrong",
+    over: "excess", // overcharge, overload, overreact
+    hyper: "excess", // hypersensitive, hyperactive (Arabic فوق)
     co: "mutual",
     out: "exceed",
 };
@@ -3044,13 +3059,39 @@ exports.COMPOUND_FIELDS = {
 // ── Morphology helpers ────────────────────────────────────────────────────────
 function resolveField(word) {
     const w = word.toLowerCase();
+    // 1. Direct lookup
     if (exports.SEMANTIC_FIELDS[w])
         return exports.SEMANTIC_FIELDS[w];
+    // 2. Silent-e restoration ("writ" → "write")
     if (exports.SEMANTIC_FIELDS[w + "e"])
         return exports.SEMANTIC_FIELDS[w + "e"];
+    // 3. Single suffix strip + silent-e
     for (const [suffix] of SUFFIX_ROLES) {
         if (w.endsWith(suffix) && w.length > suffix.length + 2) {
             const stem = w.slice(0, w.length - suffix.length);
+            const f = exports.SEMANTIC_FIELDS[stem] ?? exports.SEMANTIC_FIELDS[stem + "e"];
+            if (f)
+                return f;
+            // 4. Nested: strip a second suffix from the stem
+            //    e.g. "readable" → strip "able" → "read" → field "know"
+            //         "organization" → strip "tion" → "organiza" → strip "ize" → "organ" (no hit)
+            //         "simplification" → strip "ification" → "simpl" → strip "ify" etc.
+            for (const [suffix2] of SUFFIX_ROLES) {
+                if (stem.endsWith(suffix2) && stem.length > suffix2.length + 2) {
+                    const stem2 = stem.slice(0, stem.length - suffix2.length);
+                    const f2 = exports.SEMANTIC_FIELDS[stem2] ?? exports.SEMANTIC_FIELDS[stem2 + "e"];
+                    if (f2)
+                        return f2;
+                }
+            }
+        }
+    }
+    // 5. Prefix strip fallback — strip known prefix, resolve the bare stem
+    //    e.g. "disorganize" → "organize" → "work"
+    //         "rewrite" → "write"
+    for (const prefix of Object.keys(PREFIX_ROLES)) {
+        if (w.startsWith(prefix) && w.length > prefix.length + 2) {
+            const stem = w.slice(prefix.length);
             const f = exports.SEMANTIC_FIELDS[stem] ?? exports.SEMANTIC_FIELDS[stem + "e"];
             if (f)
                 return f;
