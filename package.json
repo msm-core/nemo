@@ -1,6 +1,6 @@
 {
   "name": "nemo-ai",
-  "version": "1.7.0",
+  "version": "1.9.0",
   "description": "Evolving semantic memory and intent router — CST tokenizer + HDC algebra",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -41,11 +41,33 @@
     "ts-jest": "^29.1.0",
     "typescript": "^5.0.0"
   },
+  "dependencies": {
+    "@msm-ai/cst": "^0.2.0"
+  },
   "jest": {
-    "preset": "ts-jest",
+    "preset": "ts-jest/presets/default-esm",
     "testEnvironment": "node",
     "testMatch": [
       "**/tests/**/*.test.ts"
-    ]
+    ],
+    "extensionsToTreatAsEsm": [
+      ".ts"
+    ],
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
+    "transform": {
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "useESM": true,
+          "diagnostics": false,
+          "tsconfig": {
+            "module": "ESNext",
+            "moduleResolution": "bundler"
+          }
+        }
+      ]
+    }
   }
 }

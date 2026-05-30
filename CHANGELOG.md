@@ -5,6 +5,54 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.9.0] — 2025-07-08
+
+### Added — Arabic tokenizer: MASSIVE dataset coverage push to LIT% ≤ 20%
+
+- **Real-data corpus**: MASSIVE ar-SA/test (2,974 Saudi Arabic utterances) replaces Wikipedia corpus
+- **Suffix stripping fix**: Changed `> suf.length + 2` to `>= suf.length + 2` allowing 3-char words (حقي, كلي etc.) to have possessive suffix ي stripped
+- **Gulf dialect structural words**: `ايش`, `وين`, `عشان`, `ابغي`, `ابي`, `تقدر` (STRUCTURAL_MAP_AR); `مين`, `كام`, `شنو` (WHAT/WHO/HOW_Q); `ليش` (WHY_Q); `يمكنني`, `يصير` (MODAL)
+- **New ROOT_FIELD entries**: `šġl`→art, `nbh`→time, `ṣwt`→tech, `qṭr`→move, `ġrd`→speak, `Hqq`→quality
+- **New ROOT_MAP groups**: alarm (nbh), sound (ṣwt), train (qṭr), tweet (ġrd), rights (Hqq); extended xbr/šġl groups
+- **DIRECT_FIELD vocabulary (~200 entries)**: Gulf cities (Dammam, Jizan, Mecca, Medina), numbers 1–10/teens/tens, email/social media apps (WhatsApp, Snapchat, Instagram, TikTok, Twitter, YouTube), IoT (lights, brightness, Wemo), food/grocery, transportation, time periods, tech (settings, updates, device), countries, world cities, recipes, and more
+- **FUNCTION_WORDS_AR additions**: 30+ Gulf dialect filler/discourse tokens
+- **Coverage**: LIT% 46.3% → **19.4%** on MASSIVE ar-SA/test (2,974 utterances); CONCEPT% 26.6% → **50.3%**
+
+---
+
+## [1.8.0] — 2025-07-08
+
+### Added — Arabic tokenizer: structural coverage push to ≥30% CONCEPT
+
+- **Tokenizer folder refactor**: `src/tokenizer.ts` and `src/tokenizer-ar.ts` split into
+  `src/tokenizer/en.ts`, `src/tokenizer/ar.ts`, `src/tokenizer/types.ts`, and
+  `src/tokenizer/index.ts`; backward-compat shims kept in place.
+- **19 Arabic orphan root fixes**: vocabulary gaps in ROOT_MAP and DIRECT_FIELD filled
+  for common words that were silently falling to LIT.
+- **English vocabulary expansion**: ~120 new SEMANTIC_FIELDS and COMPOUND_FIELDS entries
+  across all 42 semantic fields, raising CLINC150 CONCEPT% from ~35% → 40.6%.
+- **MASSIVE dataset downloader**: `plan/scripts/fetch-massive.ts` script to pull the
+  MASSIVE multilingual intent dataset for evaluation benchmarking.
+- **Arabic pipeline fixes** (all in `src/tokenizer/ar.ts`):
+  - لل contraction stripping in `segment()` (للماء → ماء).
+  - Post-segment structural/relation/function-word re-checks after clitic stripping.
+  - Sin-future guard: `سـ` prefix only emits FUTURE when remainder resolves to a known
+    field; otherwise falls through to main classification path.
+  - TA_MARBUTA fallback A: if stem ends in ه, try stem-minus-ه against ROOT_MAP and
+    DIRECT_FIELD (e.g. الرياضية → رياضيه → رياضي → science).
+  - Word-level punctuation strip: removes ،,;؛.!?؟«»()[] etc. before classification.
+  - FUNCTION_WORDS_AR additions: relative pronouns (التي, الذي, …), discourse markers
+    (وذلك, ولكن, وقد, بما, ومن, تشير, …), short pronoun combos (لها, لهم, فيها, …).
+  - DIRECT_FIELD additions: directional words (شمال/جنوب/شرق/غرب), ordinals (اول/ثاني),
+    social/governance terms (سكان, نظام, استقلال, مجال, مجموعات, مسائل), science
+    (هيدروجين, اكسجين, نيتروجين, هندسة), nature (جليد, كائنات), measure (كمية),
+    continental geography (اوروبا, اسيا, افريقيا, امريكا).
+  - RELATION_MAP_AR additions: وفقا, طبقا, بناء ("according to").
+- Arabic CONCEPT% raised from 21.6% → **30.4%** on the 1 000-sentence corpus.
+  LIT% reduced from 50% → 38.6%.
+
+---
+
 ## [1.7.0] — 2026-05-29
 
 ### Added — Smart persistence: auto-save + shutdown hook + loadOrCreate

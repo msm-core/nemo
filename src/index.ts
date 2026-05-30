@@ -10,7 +10,6 @@
 
 export * from "./hdc";
 export * from "./tokenizer";
-export * from "./tokenizer-ar";
 export * from "./encoder";
 export * from "./agent";
 export * from "./prep";
@@ -21,6 +20,7 @@ import { tokenize } from "./tokenizer";
 import { HDVEncoder } from "./encoder";
 import { HDCAgent, ClassifyResult } from "./agent";
 import { buildFrame, FIELD_TOOL, ReasoningFrame } from "./prep";
+import { GATE_HIGH, GATE_MED } from "./session";
 
 // Gate constants and pipeline re-exported from session.ts
 export { GATE_HIGH, GATE_MED } from "./session";
@@ -44,8 +44,6 @@ export function pipeline(
   agent: HDCAgent,
   encoder: HDVEncoder,
 ): import("./session").PipelineResult {
-  const { GATE_HIGH, GATE_MED } =
-    require("./session") as typeof import("./session");
   const tokens = tokenize(text);
   const frame = buildFrame(text, tokens);
   const [hv] = encoder.encode(tokens);
