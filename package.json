@@ -1,12 +1,19 @@
 {
-  "name": "nemo-ai",
-  "version": "1.9.0",
+  "name": "@msm-core/nemo",
+  "version": "2.0.0",
   "description": "Evolving semantic memory and intent router — CST tokenizer + HDC algebra",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/msm-core/nemo.git"
+    "url": "git+https://github.com/msm-core/nemo.git"
   },
   "keywords": [
     "hdc",
@@ -39,10 +46,11 @@
     "@types/node": "^20.0.0",
     "jest": "^29.5.0",
     "ts-jest": "^29.1.0",
+    "tsx": "^4.22.3",
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@msm-ai/cst": "^0.2.0"
+    "@msm-core/cst": "^0.3.0"
   },
   "jest": {
     "preset": "ts-jest/presets/default-esm",

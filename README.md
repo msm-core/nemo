@@ -1,17 +1,17 @@
-# nemo-ai
+# @msm-core/nemo
 
 > **N**eural **E**volving **M**emory **O**bject — but also the fish 🐟
 
 > Evolving semantic memory and intent router for AI agent pipelines.
 
-[![npm](https://img.shields.io/npm/v/nemo-ai)](https://www.npmjs.com/package/nemo-ai)
-[![license](https://img.shields.io/npm/l/nemo-ai)](LICENSE)
-[![tests](https://img.shields.io/badge/tests-90%20passing-brightgreen)](#)
+[![npm](https://img.shields.io/npm/v/@msm-core/nemo)](https://www.npmjs.com/package/@msm-core/nemo)
+[![license](https://img.shields.io/npm/l/@msm-core/nemo)](LICENSE)
+[![tests](https://img.shields.io/badge/tests-93%20passing-brightgreen)](#)
 
-Sub-millisecond intent classification using **Hyperdimensional Computing (MAP-HDC)** — pure TypeScript, zero dependencies, no GPU, no embedding model. Works in Node.js and the browser. Supports **English and Arabic** out of the box. Learns with every interaction.
+Sub-millisecond intent classification using **Hyperdimensional Computing (MAP-HDC)** — pure TypeScript, one runtime dependency (`@msm-core/cst`), no GPU, no embedding model. Works in Node.js and the browser. Supports **English and Arabic** out of the box. Learns with every interaction.
 
 ```bash
-npm install nemo-ai
+npm install @msm-core/nemo
 ```
 
 ---
@@ -48,7 +48,7 @@ The agent **updates itself** with every accepted input — no retraining, no mod
 ## Quickstart
 
 ```ts
-import { pipeline, HDCAgent, HDVEncoder, tokenize } from "nemo-ai";
+import { pipeline, HDCAgent, HDVEncoder, tokenize } from "@msm-core/nemo";
 
 const encoder = new HDVEncoder(); // seeded — deterministic vector space
 const agent = new HDCAgent();
@@ -80,10 +80,10 @@ console.log(result.tool); // "code_assistant"
 
 ## Arabic Support
 
-nemo ships a full Arabic tokenizer with feature parity to the English one. Both produce identical `CSTToken[]` output — the same encoder and agent work for both languages without any configuration.
+nemo ships a full Arabic tokenizer with feature parity to the English one. Both produce identical `NemoToken[]` output — the same encoder and agent work for both languages without any configuration.
 
 ```ts
-import { tokenizeAr, tokenStreamAr } from "nemo-ai";
+import { tokenizeAr, tokenStreamAr, pipelineAr } from "@msm-core/nemo";
 
 // All 18 token types work in Arabic
 tokenStreamAr("يمكن أن أساعدك في البرمجة");
@@ -111,7 +111,7 @@ The Arabic tokenizer includes:
 ### Pre-LLM gate
 
 ```ts
-import { pipeline, HDCAgent, HDVEncoder } from "nemo-ai";
+import { pipeline, pipelineAr, HDCAgent, HDVEncoder } from "@msm-core/nemo";
 
 async function route(
   input: string,
@@ -137,7 +137,7 @@ async function route(
 `NemoSession` wraps encoder + agent + tools into one persistent unit with built-in auto-save:
 
 ```ts
-import { NemoSession } from "nemo-ai";
+import { NemoSession } from "@msm-core/nemo";
 
 // Recommended: loads saved state if file exists, starts fresh if not.
 // Auto-saves every 100 teach() calls and flushes on SIGTERM — zero config needed.
@@ -159,6 +159,8 @@ session.save();
 
 ### Episodic memory retrieval
 
+For Arabic, use `pipelineAr(text, agent, encoder)` which calls `tokenizeAr` internally.
+
 ```ts
 const [queryHV] = encoder.encode(tokenize("how do I fix this"));
 const episodes = agent.retrieve(queryHV, 3);
@@ -172,7 +174,7 @@ for (const ep of episodes) {
 
 ```ts
 import fs from "fs";
-import { HDCAgent } from "nemo-ai";
+import { HDCAgent } from "@msm-core/nemo";
 
 // Export
 fs.writeFileSync("memory.nemo.json", JSON.stringify(agent.toJSON()));
@@ -189,11 +191,11 @@ const agentB = HDCAgent.fromJSON(
 
 ### `pipeline(text, agent, encoder): PipelineResult`
 
-Full stack in one call. English only — for Arabic use `tokenizeAr` then `encoder.encode`.
+Full stack in one call. For Arabic, use `pipelineAr(text, agent, encoder)` — same signature.
 
 | Field            | Type             | Description                                 |
 | ---------------- | ---------------- | ------------------------------------------- |
-| `tokens`         | `CSTToken[]`     | CST token array                             |
+| `tokens`         | `NemoToken[]`    | Token array                                 |
 | `frame`          | `ReasoningFrame` | intent frame (is_question, has_negation, …) |
 | `classification` | `ClassifyResult` | field, confidence, top3                     |
 | `tool`           | `string`         | mapped tool name                            |
@@ -226,11 +228,10 @@ Full stack in one call. English only — for Arabic use `tokenizeAr` then `encod
 
 | Export                | Language | Description                                   |
 | --------------------- | -------- | --------------------------------------------- |
-| `tokenize(text)`      | English  | Returns `CSTToken[]`                          |
+| `tokenize(text)`      | English  | Returns `NemoToken[]`                         |
 | `tokenStream(text)`   | English  | Returns token values as a space-joined string |
-| `tokenizeAr(text)`    | Arabic   | Returns `CSTToken[]` — same interface         |
+| `tokenizeAr(text)`    | Arabic   | Returns `NemoToken[]` — same interface        |
 | `tokenStreamAr(text)` | Arabic   | Returns token values as a space-joined string |
-| `COMPOUND_FIELDS`     | English  | Bigram → field map (exported for extension)   |
 | `COMPOUND_FIELDS_AR`  | Arabic   | Bigram → field map (exported for extension)   |
 
 ### Gate thresholds
@@ -242,7 +243,7 @@ Full stack in one call. English only — for Arabic use `tokenizeAr` then `encod
 | `full_llm`   | < 0.35      | Unknown input — route to the LLM without hints |
 
 ```ts
-import { GATE_HIGH, GATE_MED } from "nemo-ai";
+import { GATE_HIGH, GATE_MED } from "@msm-core/nemo";
 // GATE_HIGH = 0.55,  GATE_MED = 0.35
 ```
 
@@ -292,7 +293,7 @@ process.once("SIGTERM", () => session.save());
 ### Low-level persistence helpers
 
 ```ts
-import { saveToFile, loadFromFile } from "nemo-ai";
+import { saveToFile, loadFromFile } from "@msm-core/nemo";
 
 // Save agent + encoder directly
 saveToFile("./memory.nemo.json", agent, encoder, { myMeta: "v2" });
@@ -318,7 +319,7 @@ await redis.set(`nemo:${userId}`, JSON.stringify(agent.toJSON()));
 | `version`      | Integer schema version                                        | Currently `1`                                            |
 | `savedAt`      | ISO timestamp                                                 | Informational only                                       |
 
-The built-in vocabulary (keyword tables in `tokenizer.ts`) is **not** in the file — it is compiled into the package. Only the learned improvements from `teach()` are persisted. Losing the file means starting fresh with the built-in vocabulary, not losing the model.
+The built-in vocabulary (from `@msm-core/cst`) is **not** in the file — it is compiled into the package. Only the learned improvements from `teach()` are persisted. Losing the file means starting fresh with the built-in vocabulary, not losing the model.
 
 ---
 
@@ -376,7 +377,7 @@ The agent keeps one **running sum** per semantic field. Each accepted input shif
 git clone https://github.com/msm-core/nemo.git
 cd nemo
 npm install
-npm test       # 90 tests
+npm test       # 93 tests
 npm run build  # compiles to dist/
 ```
 
@@ -396,7 +397,7 @@ nemo's tokenizer is built on the linguistic principles of **Contextual Semantic 
 | ---------------------------------------------- | ------------------------------------------------- |
 | Semantic fields (~45 universal)                | 42 shared fields, same names                      |
 | Morphological role detection                   | `ROLE:agent` / `patient` / `process` / `place`    |
-| Triconsonantal root algebra                    | `ROOT_MAP` → `ROOT_FIELD` for Arabic stems        |
+| Triconsonantal root algebra                    | Root-based Arabic stem lookup via `@msm-core/cst` |
 | Structural markers (negation, tense, modality) | `NEG`, `MODAL`, `PAST`, `FUTURE`, `COND`, `CAUSE` |
 | Cross-lingual field parity                     | Same 42 fields for English and Arabic             |
 

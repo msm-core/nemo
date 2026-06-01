@@ -3,7 +3,7 @@
  *
  * Produces a ReasoningFrame that enriches classification before HDC lookup.
  */
-import { CSTToken } from "./tokenizer";
+import { NemoToken } from "./tokenizer";
 export declare const FIELD_TOOL: Record<string, string>;
 export interface ReasoningFrame {
     queryType: string;
@@ -27,5 +27,5 @@ export interface ReasoningFrame {
     excludedTools: string[];
     confidencePrior: number;
 }
-export declare function buildFrame(text: string, tokens: CSTToken[]): ReasoningFrame;
+export declare function buildFrame(text: string, tokens: NemoToken[]): ReasoningFrame;
 //# sourceMappingURL=prep.d.ts.map

@@ -9,7 +9,7 @@ This file is the first thing a code agent should read. It provides the operation
 **Package:** `nemo-ai`
 **Version:** See `package.json` → `version`
 **Language:** TypeScript 5, Node.js 18+
-**Runtime dependencies:** **none** (zero external packages at runtime)
+**Runtime dependencies:** `@msm-core/cst` (the CST tokenizer — vocab + pipeline; ~160 kB packed)
 **Repository:** https://github.com/msm-core/nemo
 
 ---
@@ -17,7 +17,7 @@ This file is the first thing a code agent should read. It provides the operation
 ## Essential Commands
 
 ```bash
-npm test          # Run all 90 tests (jest with --experimental-vm-modules)
+npm test          # Run all 93 tests (jest with --experimental-vm-modules)
 npm run build     # Compile TypeScript → dist/
 npm run clean     # Remove dist/
 ```
@@ -32,10 +32,9 @@ The `prepublishOnly` script runs `build + test` automatically, so tests must pas
 ```
 src/
   hdc.ts          — MAP HDC math primitives (no imports from nemo)
-  tokenizer.ts    — English CST tokenizer → CSTToken[]
-  tokenizer-ar.ts — Arabic CST tokenizer  → CSTToken[]
-  encoder.ts      — CSTToken[] → Float32Array (hypervector)
-  prep.ts         — CSTToken[] → ReasoningFrame + FIELD_TOOL map
+  tokenizer.ts    — CST adapter (EN+AR): @msm-core/cst → NemoToken[]
+  encoder.ts      — NemoToken[] → Float32Array (hypervector)
+  prep.ts         — NemoToken[] → ReasoningFrame + FIELD_TOOL map
   agent.ts        — HDCAgent: classify, observe, calibrate, update, feedback
   persist.ts      — Save/load agent+encoder state to .nemo.json
   session.ts      — NemoSession: full pipeline entry point
@@ -57,13 +56,12 @@ README.md       — User-facing documentation
 
 ## Hard Rules
 
-1. **Do not add runtime dependencies.** Zero deps is a core design constraint. If a task seems to require an external library, implement it in pure TypeScript instead.
+1. **The only runtime dependency is `@msm-core/cst`.** Do not add others. All vocabulary, morphology, and tokenization logic lives in CST — fix it there, not here.
 2. **Do not change `DIM = 10_000` in `src/hdc.ts`.** This invalidates all persisted `.nemo.json` files.
 3. **Do not change `SEED = 42` in `src/encoder.ts`.** This invalidates atom spaces across restarts.
-4. **Single-word entries go in `DIRECT_FIELD` or `SEMANTIC_FIELDS`; multi-word entries go in `COMPOUND_FIELDS_AR` / `COMPOUND_FIELDS`.** Putting a bigram (phrase with a space) in `DIRECT_FIELD` will silently never match because `_DIRECT_FIELD_NORM` skips keys containing spaces.
-5. **Both tokenizers share the same `CSTToken` interface** (imported from `tokenizer.ts`). The Arabic tokenizer does NOT redefine it.
-6. **All 42 semantic field names must be consistent** across `tokenizer.ts`, `tokenizer-ar.ts`, `encoder.ts`, and `prep.ts`. If you add a field, update all four files.
-7. **Do not reorder steps inside `segment()` in `tokenizer-ar.ts`.** The clitic-stripping pipeline has a strict order: conjunction → preposition → definite article → object suffixes → tā-marbūṭah → accusative alef. Reordering causes false strips.
+4. **`NemoToken` (in `src/tokenizer.ts`) is nemo's internal token type.** It is distinct from CST's `CSTToken`. Do not conflate them. The adapter in `tokenizer.ts` converts CST's 5 types → nemo's 18 types.
+5. **All semantic field names must be consistent** across `encoder.ts` (`FIELDS` array) and `prep.ts` (`FIELD_TOOL` map). When CST adds a new L1 field, add it to both.
+6. **L2 sub-fields (dot notation: `tech.ai`) must have entries in both `encoder.ts` `SUB_FIELDS` and `prep.ts` `FIELD_TOOL`.** Missing either causes silent routing failures.
 
 ---
 
@@ -81,41 +79,20 @@ WHAT_Q  WHO_Q  WHERE_Q  WHEN_Q  WHY_Q  HOW_Q  WHICH_Q
 
 ---
 
-## How to Add English Vocabulary
+## How to Add Vocabulary
 
-Edit `src/tokenizer.ts`:
-- Add single words to `SEMANTIC_FIELDS: Record<string, string>` (word → field name, lowercase)
-- Add bigrams to `COMPOUND_FIELDS: Record<string, string>` (phrase → field name, lowercase)
-- Valid field names: see the 42-field list in `ARCHITECTURE.md`
+**All vocabulary lives in `@msm-core/cst`, not in nemo.** Edit `vocab/concepts.json` in the CST package, run `npm run vocab && npm run build`, then update `@msm-core/cst` version in nemo's `package.json`.
 
----
-
-## How to Add Arabic Vocabulary
-
-Edit `src/tokenizer-ar.ts`:
-
-**Option A — has a known trilateral root:**
-1. Add to `ROOT_MAP` (normalized Arabic stem → root code in ASCII transliteration)
-2. If the root code is new, add to `ROOT_FIELD` (root code → field name)
-3. The normalized lookup tables are rebuilt automatically at module init
-
-**Option B — doesn't reduce to a root (proper nouns, loanwords, complex derivations):**
-1. Add to `DIRECT_FIELD` (Arabic word → field name, single words only, no spaces)
-
-**Option C — multi-word phrase (bigram):**
-1. Add to `COMPOUND_FIELDS_AR` (Arabic phrase with space → field name)
-2. These are matched as pre-scanned bigrams before tokenization
-
-**Important:** Always add the base form. The `segment()` pipeline will strip clitics from user input before lookup, so entries should be the unadorned stem (no ال, no وـ, no ـه etc.).
+See `@msm-core/cst` AGENTS.md for full vocabulary editing instructions (English stems, Arabic roots, function words, etc.).
 
 ---
 
 ## How to Add a New Semantic Field
 
-1. `src/tokenizer.ts` — add vocabulary entries with the new field name
-2. `src/tokenizer-ar.ts` — add Arabic vocabulary entries with the new field name
-3. `src/encoder.ts` — add the field name to the `FIELDS` array
-4. `src/prep.ts` — add `newField: "tool_name"` to `FIELD_TOOL`
+1. Add the field in `@msm-core/cst` (vocab + encoder FIELDS array)
+2. `src/encoder.ts` — add the field name to the `FIELDS` array
+3. `src/prep.ts` — add `newField: "tool_name"` to `FIELD_TOOL`
+4. For L2 sub-fields: add `["parent", "qualifier"]` to `SUB_FIELDS` in `encoder.ts` AND add `"parent.qualifier": "tool"` to `FIELD_TOOL` in `prep.ts`
 5. Add test cases in the relevant test files
 6. Bump the minor version in `package.json` and add a `CHANGELOG.md` entry
 
@@ -134,6 +111,7 @@ Edit `src/tokenizer-ar.ts`:
 ## Versioning
 
 This project follows [Semantic Versioning](https://semver.org/):
+
 - **Patch** (`1.5.x`) — bug fixes, vocabulary additions
 - **Minor** (`1.x.0`) — new fields, new language support, new pipeline stages
 - **Major** (`x.0.0`) — changes to `DIM`, `SEED`, token type set, or binary format
@@ -144,8 +122,7 @@ When bumping the version: update `package.json` → `version` and add an entry a
 
 ## Known Limitations
 
-1. **Arabic root extraction is rule-based, not morphological analysis.** Edge cases exist for Form VII (`انـ`) and Form IX (`افـ`). When a word fails to classify, check whether it needs a `DIRECT_FIELD` entry.
-2. **English compound phrases** are scanned left-to-right as bigrams only (no trigram support).
-3. **Arabic compound scan** covers the full sentence but only at the bigram level.
-4. **`HDCAgent.calibrate()`** must be called after bulk `observe()` calls and before inference. Calling `classify()` before `calibrate()` returns `field = "unknown"`.
-5. **Persistence is JSON, not binary.** For very large prototype stores (thousands of fields), consider chunked serialization.
+1. **`session.ts` `pipeline()` is English-only.** For Arabic, call `tokenizeAr(text)` then `encoder.encode(tokens)` directly.
+2. **`HDCAgent.calibrate()`** must be called after bulk `observe()` calls and before inference. Calling `classify()` before `calibrate()` returns `field = "unknown"`.
+3. **Persistence is JSON, not binary.** For very large prototype stores (thousands of fields), consider chunked serialization.
+4. **L2 field routing requires both `encoder.ts` `SUB_FIELDS` and `prep.ts` `FIELD_TOOL` entries.** If a sub-field token is produced by CST but not registered in `SUB_FIELDS`, the encoder skips it silently.

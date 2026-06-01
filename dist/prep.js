@@ -1,35 +1,100 @@
-"use strict";
 /**
  * prep.ts — Preparation layer: rule-based intent frame between CST and HDC.
  *
  * Produces a ReasoningFrame that enriches classification before HDC lookup.
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.FIELD_TOOL = void 0;
-exports.buildFrame = buildFrame;
 // ── Field → Tool mappings ─────────────────────────────────────────────────────
-exports.FIELD_TOOL = {
-    know: "knowledge_base", think: "reasoning_engine",
-    speak: "dialogue_manager", write: "writing_assistant",
-    see: "vision_analyzer", feel: "sentiment_analyzer",
-    make: "task_executor", create: "creative_generator",
-    destroy: "delete_handler", fix: "debug_assistant",
-    work: "workflow_manager", move: "navigation_service",
-    send: "communication_hub", give: "resource_manager",
-    gather: "aggregator", hold: "storage_manager",
-    connect: "integration_bus", exist: "state_tracker",
-    want: "intent_classifier", govern: "policy_engine",
-    fight: "conflict_resolver", trade: "market_service",
-    social: "social_graph", possess: "ownership_registry",
-    science: "research_engine", health: "medical_advisor",
-    tech: "code_assistant", art: "creative_studio",
-    sport: "sports_analytics", nature: "environment_service",
-    weather: "weather_service", animal: "species_classifier",
-    plant: "botany_service", body: "anatomy_reference",
-    food: "recipe_advisor", material: "material_catalog",
-    color: "color_service", time: "calendar_service",
-    place: "location_service", size: "measurement_service",
-    measure: "measurement_service", quality: "quality_evaluator",
+export const FIELD_TOOL = {
+    // ── L1 fields ────────────────────────────────────────────────────────────
+    know: "knowledge_base",
+    think: "reasoning_engine",
+    speak: "dialogue_manager",
+    write: "writing_assistant",
+    see: "vision_analyzer",
+    feel: "sentiment_analyzer",
+    make: "task_executor",
+    create: "creative_generator",
+    destroy: "delete_handler",
+    fix: "debug_assistant",
+    work: "workflow_manager",
+    move: "navigation_service",
+    send: "communication_hub",
+    give: "resource_manager",
+    gather: "aggregator",
+    hold: "storage_manager",
+    connect: "integration_bus",
+    exist: "state_tracker",
+    want: "intent_classifier",
+    govern: "policy_engine",
+    fight: "conflict_resolver",
+    trade: "market_service",
+    social: "social_graph",
+    possess: "ownership_registry",
+    science: "research_engine",
+    health: "medical_advisor",
+    tech: "code_assistant",
+    art: "creative_studio",
+    sport: "sports_analytics",
+    nature: "environment_service",
+    weather: "weather_service",
+    animal: "species_classifier",
+    plant: "botany_service",
+    body: "anatomy_reference",
+    food: "recipe_advisor",
+    material: "material_catalog",
+    color: "color_service",
+    time: "calendar_service",
+    place: "location_service",
+    size: "measurement_service",
+    measure: "measurement_service",
+    quality: "quality_evaluator",
+    // ── L2 sub-fields (parent.qualifier) ─────────────────────────────────────
+    "tech.ai": "ai_service",
+    "tech.code": "code_assistant",
+    "tech.hardware": "hardware_advisor",
+    "tech.network": "network_service",
+    "tech.iot": "iot_controller",
+    "tech.security": "security_advisor",
+    "health.symptom": "symptom_checker",
+    "health.drug": "drug_reference",
+    "health.treatment": "treatment_advisor",
+    "health.fitness": "fitness_coach",
+    "social.family": "family_assistant",
+    "social.org": "org_directory",
+    "social.contact": "contact_manager",
+    "social.community": "community_hub",
+    "time.alarm": "alarm_service",
+    "time.calendar": "calendar_service",
+    "time.duration": "timer_service",
+    "trade.price": "price_lookup",
+    "trade.order": "order_manager",
+    "trade.stock": "stock_service",
+    "trade.currency": "currency_converter",
+    "know.search": "search_engine",
+    "know.read": "reader_service",
+    "know.news": "news_service",
+    "know.question": "qa_service",
+    "speak.command": "command_handler",
+    "speak.greeting": "dialogue_manager",
+    "speak.farewell": "dialogue_manager",
+    "move.drive": "driving_navigator",
+    "move.fly": "flight_service",
+    "move.walk": "walking_navigator",
+    "move.ride": "ride_service",
+    "place.city": "city_info",
+    "place.country": "country_info",
+    "place.home": "home_assistant",
+    "place.route": "routing_service",
+    "weather.rain": "rain_forecast",
+    "weather.temp": "temperature_service",
+    "weather.forecast": "weather_service",
+    "art.music": "music_service",
+    "art.film": "film_service",
+    "art.visual": "visual_studio",
+    "art.book": "book_service",
+    "food.recipe": "recipe_service",
+    "food.restaurant": "restaurant_finder",
+    "food.nutrition": "nutrition_advisor",
 };
 // ── Resolution rules (co-occurrence → override) ───────────────────────────────
 const RULES = [
@@ -42,52 +107,181 @@ const RULES = [
     [new Set(["trade", "know"]), "know"],
 ];
 const CREATIVE_TRIGGERS = new Set([
-    "imagine", "invent", "dream", "story", "poem", "fantasy", "fiction",
-    "creative", "novel", "compose", "brainstorm", "idea", "concept",
-    "write", "draw", "design", "art",
+    "imagine",
+    "invent",
+    "dream",
+    "story",
+    "poem",
+    "fantasy",
+    "fiction",
+    "creative",
+    "novel",
+    "compose",
+    "brainstorm",
+    "idea",
+    "concept",
+    "write",
+    "draw",
+    "design",
+    "art",
 ]);
 const PATTERNS = [
-    { subs: ["weather", "forecast", "temperature", "rain", "snow", "wind", "storm"],
-        queryType: "weather_query" },
-    { subs: ["recipe", "ingredient", "cook", "bake", "how to make", "how to cook"],
-        queryType: "recipe_query", fieldOverride: "food" },
-    { subs: ["match", "score", "game", "league", "standings", "championship", "fixture"],
-        queryType: "sports_query" },
-    { subs: ["symptom", "pain", "fever", "cough", "treatment", "headache", "dose", "medication"],
-        queryType: "health_query" },
-    { subs: ["schedule", "reminder", "calendar", "appointment", "deadline", "booking"],
-        queryType: "calendar_query", fieldOverride: "time" },
-    { subs: ["navigate", "route", "direction", "map", "nearest", "nearby", "distance"],
-        queryType: "navigation_query", fieldOverride: "place" },
-    { subs: ["stock", "price", "exchange", "bitcoin", "crypto", "currency", "gold"],
-        queryType: "finance_query", fieldOverride: "trade" },
-    { subs: ["dna", "experiment", "hypothesis", "physics", "chemistry", "quantum"],
-        queryType: "science_query" },
-    { subs: ["code", "bug", "error", "debug", "syntax", "compile", "import", "exception"],
-        queryType: "tech_query" },
-    { subs: ["translate", "meaning", "definition", "explain", "clarify", "describe"],
-        queryType: "explanation_query", fieldOverride: "know" },
-    { subs: ["best", "recommend", "suggest", "advice", "should i", "which is"],
-        queryType: "recommendation_query" },
-    { subs: ["email", "message", "send", "notify", "alert", "inbox"],
-        queryType: "communication_query", fieldOverride: "send" },
+    {
+        subs: [
+            "weather",
+            "forecast",
+            "temperature",
+            "rain",
+            "snow",
+            "wind",
+            "storm",
+        ],
+        queryType: "weather_query",
+    },
+    {
+        subs: [
+            "recipe",
+            "ingredient",
+            "cook",
+            "bake",
+            "how to make",
+            "how to cook",
+        ],
+        queryType: "recipe_query",
+        fieldOverride: "food",
+    },
+    {
+        subs: [
+            "match",
+            "score",
+            "game",
+            "league",
+            "standings",
+            "championship",
+            "fixture",
+        ],
+        queryType: "sports_query",
+    },
+    {
+        subs: [
+            "symptom",
+            "pain",
+            "fever",
+            "cough",
+            "treatment",
+            "headache",
+            "dose",
+            "medication",
+        ],
+        queryType: "health_query",
+    },
+    {
+        subs: [
+            "schedule",
+            "reminder",
+            "calendar",
+            "appointment",
+            "deadline",
+            "booking",
+        ],
+        queryType: "calendar_query",
+        fieldOverride: "time",
+    },
+    {
+        subs: [
+            "navigate",
+            "route",
+            "direction",
+            "map",
+            "nearest",
+            "nearby",
+            "distance",
+        ],
+        queryType: "navigation_query",
+        fieldOverride: "place",
+    },
+    {
+        subs: [
+            "stock",
+            "price",
+            "exchange",
+            "bitcoin",
+            "crypto",
+            "currency",
+            "gold",
+        ],
+        queryType: "finance_query",
+        fieldOverride: "trade",
+    },
+    {
+        subs: [
+            "dna",
+            "experiment",
+            "hypothesis",
+            "physics",
+            "chemistry",
+            "quantum",
+        ],
+        queryType: "science_query",
+    },
+    {
+        subs: [
+            "code",
+            "bug",
+            "error",
+            "debug",
+            "syntax",
+            "compile",
+            "import",
+            "exception",
+        ],
+        queryType: "tech_query",
+    },
+    {
+        subs: [
+            "translate",
+            "meaning",
+            "definition",
+            "explain",
+            "clarify",
+            "describe",
+        ],
+        queryType: "explanation_query",
+        fieldOverride: "know",
+    },
+    {
+        subs: ["best", "recommend", "suggest", "advice", "should i", "which is"],
+        queryType: "recommendation_query",
+    },
+    {
+        subs: ["email", "message", "send", "notify", "alert", "inbox"],
+        queryType: "communication_query",
+        fieldOverride: "send",
+    },
 ];
 const ACTION_FIELDS = new Set([
-    "fix", "create", "move", "send", "govern",
-    "fight", "destroy", "connect", "give",
+    "fix",
+    "create",
+    "move",
+    "send",
+    "govern",
+    "fight",
+    "destroy",
+    "connect",
+    "give",
 ]);
 // ── Build function ────────────────────────────────────────────────────────────
-function buildFrame(text, tokens) {
+export function buildFrame(text, tokens) {
     const textLower = text.toLowerCase();
     const fieldCounts = {};
     // Token-level analysis
-    const isQuestion = tokens.some(t => t.type === "QUERY");
-    const hasNegation = tokens.some(t => t.type === "NEG");
-    const hasLocationQ = tokens.some(t => t.type === "WHERE_Q");
-    const hasTemporalQ = tokens.some(t => t.type === "WHEN_Q");
-    const hasMethodQ = tokens.some(t => t.type === "HOW_Q");
-    const hasCauseQ = tokens.some(t => t.type === "WHY_Q");
-    const hasAgentQ = tokens.some(t => t.type === "WHO_Q");
+    const isQuestion = tokens.some((t) => t.type === "QUERY");
+    const hasNegation = tokens.some((t) => t.type === "NEG");
+    const hasLocationQ = tokens.some((t) => t.type === "WHERE_Q");
+    const hasTemporalQ = tokens.some((t) => t.type === "WHEN_Q");
+    const hasMethodQ = tokens.some((t) => t.type === "HOW_Q");
+    const hasCauseQ = tokens.some((t) => t.type === "WHY_Q");
+    const hasAgentQ = tokens.some((t) => t.type === "WHO_Q");
     for (const tok of tokens) {
         if (tok.type === "CONCEPT" && tok.field) {
             fieldCounts[tok.field] = (fieldCounts[tok.field] ?? 0) + 1;
@@ -96,12 +290,12 @@ function buildFrame(text, tokens) {
     // Find dominant + secondary
     const sortedFields = Object.entries(fieldCounts).sort((a, b) => b[1] - a[1]);
     let dominantField = sortedFields[0]?.[0] ?? "know";
-    const secondaryFields = sortedFields.slice(1).map(e => e[0]);
+    const secondaryFields = sortedFields.slice(1).map((e) => e[0]);
     // Co-occurrence resolution rules
     let resolutionRule = null;
     const fieldSet = new Set(Object.keys(fieldCounts));
     for (const [pair, result] of RULES) {
-        if ([...pair].every(f => fieldSet.has(f))) {
+        if ([...pair].every((f) => fieldSet.has(f))) {
             dominantField = result;
             resolutionRule = [...pair].join("+") + "→" + result;
             break;
@@ -112,8 +306,8 @@ function buildFrame(text, tokens) {
     let fieldOverride = null;
     let queryType = isQuestion ? "factual_query" : "action";
     for (const pat of PATTERNS) {
-        if (pat.subs.some(s => textLower.includes(s))) {
-            patternMatch = pat.subs.find(s => textLower.includes(s)) ?? null;
+        if (pat.subs.some((s) => textLower.includes(s))) {
+            patternMatch = pat.subs.find((s) => textLower.includes(s)) ?? null;
             queryType = pat.queryType;
             fieldOverride = pat.fieldOverride ?? null;
             break;
@@ -122,7 +316,8 @@ function buildFrame(text, tokens) {
     if (fieldOverride)
         dominantField = fieldOverride;
     // Creative override
-    if ([...CREATIVE_TRIGGERS].some(w => textLower.includes(w)) && !fieldOverride) {
+    if ([...CREATIVE_TRIGGERS].some((w) => textLower.includes(w)) &&
+        !fieldOverride) {
         queryType = "creative_query";
         dominantField = "create";
     }
@@ -150,8 +345,10 @@ function buildFrame(text, tokens) {
     }
     // Candidate tools
     const candidateFields = [dominantField, ...secondaryFields.slice(0, 2)];
-    const candidateTools = [...new Set(candidateFields.map(f => exports.FIELD_TOOL[f]).filter(Boolean))];
-    const excludedTools = negatedFields.map(f => exports.FIELD_TOOL[f]).filter(Boolean);
+    const candidateTools = [
+        ...new Set(candidateFields.map((f) => FIELD_TOOL[f]).filter(Boolean)),
+    ];
+    const excludedTools = negatedFields.map((f) => FIELD_TOOL[f]).filter(Boolean);
     // Confidence prior
     const hasPattern = !!patternMatch;
     const hasRule = !!resolutionRule;
@@ -163,11 +360,26 @@ function buildFrame(text, tokens) {
     else if (hasRule)
         confidencePrior = 0.55;
     return {
-        queryType, dominantField, secondaryFields, conceptCounts: fieldCounts,
-        isQuestion, hasNegation, hasLocationQ, hasTemporalQ,
-        hasMethodQ, hasCauseQ, hasAgentQ,
-        negatedFields, resolutionRule, patternMatch, fieldOverride,
-        verbField, objectFields, candidateTools, excludedTools, confidencePrior,
+        queryType,
+        dominantField,
+        secondaryFields,
+        conceptCounts: fieldCounts,
+        isQuestion,
+        hasNegation,
+        hasLocationQ,
+        hasTemporalQ,
+        hasMethodQ,
+        hasCauseQ,
+        hasAgentQ,
+        negatedFields,
+        resolutionRule,
+        patternMatch,
+        fieldOverride,
+        verbField,
+        objectFields,
+        candidateTools,
+        excludedTools,
+        confidencePrior,
     };
 }
 //# sourceMappingURL=prep.js.map

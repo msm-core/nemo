@@ -5,6 +5,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.0.0] — 2025-07-09
+
+### Breaking
+
+- **`CSTToken` renamed to `NemoToken`** across all source files and public API. The old name is retained as a deprecated re-export alias (`export type CSTToken = NemoToken`) for backward compatibility, but will be removed in a future version.
+- **`@msm-core/cst` is now the sole runtime dependency.** All internal vocabulary tables (SEMANTIC_FIELDS, COMPOUND_FIELDS, ROOT_MAP, DIRECT_FIELD, etc.) have been removed from nemo. Vocabulary changes must be made in `@msm-core/cst`.
+
+### Added
+
+- **`pipelineAr(text, agent, encoder)`** — stateless Arabic pipeline helper in `src/index.ts`, mirroring the existing `pipeline()` for English. Calls `tokenizeAr` and runs the full HDC stack.
+- **L2 sub-field tool routing** — `FIELD_TOOL` in `prep.ts` expanded from ~42 entries to ~87, covering all dot-notation sub-fields (`tech.ai`, `place.city`, `trade.currency`, etc.). Previously these fell through to `general_assistant`.
+
+### Changed
+
+- `src/tokenizer.ts` is now a thin adapter over `@msm-core/cst`. No internal vocabulary tables.
+- `src/encoder.ts` and `src/prep.ts` import/accept `NemoToken[]` instead of `CSTToken[]`.
+- `src/session.ts` `PipelineResult.tokens` type is `NemoToken[]`.
+- `ARCHITECTURE.md` rewritten — stale `tokenizer-ar.ts` section removed; adapter mapping table added.
+- `AGENTS.md` fully rewritten to reflect CST-adapter architecture and NemoToken vocabulary.
+
+---
+
 ## [1.9.0] — 2025-07-08
 
 ### Added — Arabic tokenizer: MASSIVE dataset coverage push to LIT% ≤ 20%

@@ -60,8 +60,8 @@ describe("CST Arabic Tokenizer", () => {
     expect(role?.role).toBe("patient");
   });
 
-  test("ROLE process — تدريب (training)", () => {
-    const toks = tokenizeAr("تدريب الفريق");
+  test("ROLE process — محادثة (conversation, Form-III masdar)", () => {
+    const toks = tokenizeAr("محادثة هاتفية");
     const role = toks.find((t) => t.type === "ROLE");
     expect(role).toBeDefined();
     expect(role?.role).toBe("process");

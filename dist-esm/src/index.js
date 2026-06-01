@@ -14,7 +14,7 @@ export * from "./agent";
 export * from "./prep";
 export * from "./persist";
 export * from "./session";
-import { tokenize, tokenizeAr } from "./tokenizer";
+import { tokenize } from "./tokenizer";
 import { buildFrame, FIELD_TOOL } from "./prep";
 import { GATE_HIGH, GATE_MED } from "./session";
 // Gate constants and pipeline re-exported from session.ts
@@ -44,29 +44,3 @@ export function pipeline(text, agent, encoder) {
             : "full_llm";
     return { text, tokens, frame, classification, tool, gate };
 }
-/**
- * Run the full nemo pipeline for Arabic input (stateless helper).
- *
- * @param text    Raw Arabic input.
- * @param agent   Trained HDCAgent.
- * @param encoder HDVEncoder (same seed as used during training).
- */
-export function pipelineAr(text, agent, encoder) {
-    const tokens = tokenizeAr(text);
-    const frame = buildFrame(text, tokens);
-    const [hv] = encoder.encode(tokens);
-    const classification = agent.classify(hv);
-    const field = frame.confidencePrior >= GATE_HIGH
-        ? frame.dominantField
-        : classification.field;
-    const tool = FIELD_TOOL[field] ??
-        FIELD_TOOL[classification.field] ??
-        "general_assistant";
-    const gate = classification.confidence >= GATE_HIGH
-        ? "skip_llm"
-        : classification.confidence >= GATE_MED
-            ? "llm_assist"
-            : "full_llm";
-    return { text, tokens, frame, classification, tool, gate };
-}
-//# sourceMappingURL=index.js.map

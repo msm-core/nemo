@@ -16,7 +16,7 @@ export * from "./prep";
 export * from "./persist";
 export * from "./session";
 
-import { tokenize } from "./tokenizer";
+import { tokenize, tokenizeAr } from "./tokenizer";
 import { HDVEncoder } from "./encoder";
 import { HDCAgent, ClassifyResult } from "./agent";
 import { buildFrame, FIELD_TOOL, ReasoningFrame } from "./prep";
@@ -45,6 +45,43 @@ export function pipeline(
   encoder: HDVEncoder,
 ): import("./session").PipelineResult {
   const tokens = tokenize(text);
+  const frame = buildFrame(text, tokens);
+  const [hv] = encoder.encode(tokens);
+  const classification = agent.classify(hv);
+
+  const field =
+    frame.confidencePrior >= GATE_HIGH
+      ? frame.dominantField
+      : classification.field;
+
+  const tool =
+    FIELD_TOOL[field] ??
+    FIELD_TOOL[classification.field] ??
+    "general_assistant";
+
+  const gate: import("./session").GateDecision =
+    classification.confidence >= GATE_HIGH
+      ? "skip_llm"
+      : classification.confidence >= GATE_MED
+        ? "llm_assist"
+        : "full_llm";
+
+  return { text, tokens, frame, classification, tool, gate };
+}
+
+/**
+ * Run the full nemo pipeline for Arabic input (stateless helper).
+ *
+ * @param text    Raw Arabic input.
+ * @param agent   Trained HDCAgent.
+ * @param encoder HDVEncoder (same seed as used during training).
+ */
+export function pipelineAr(
+  text: string,
+  agent: HDCAgent,
+  encoder: HDVEncoder,
+): import("./session").PipelineResult {
+  const tokens = tokenizeAr(text);
   const frame = buildFrame(text, tokens);
   const [hv] = encoder.encode(tokens);
   const classification = agent.classify(hv);

@@ -9,7 +9,6 @@
  */
 export * from "./hdc";
 export * from "./tokenizer";
-export * from "./tokenizer-ar";
 export * from "./encoder";
 export * from "./agent";
 export * from "./prep";
@@ -27,4 +26,12 @@ export type { GateDecision, PipelineResult, SessionResult, ToolFn, ToolMap, } fr
  * @param encoder HDVEncoder (same seed as used during training).
  */
 export declare function pipeline(text: string, agent: HDCAgent, encoder: HDVEncoder): import("./session").PipelineResult;
+/**
+ * Run the full nemo pipeline for Arabic input (stateless helper).
+ *
+ * @param text    Raw Arabic input.
+ * @param agent   Trained HDCAgent.
+ * @param encoder HDVEncoder (same seed as used during training).
+ */
+export declare function pipelineAr(text: string, agent: HDCAgent, encoder: HDVEncoder): import("./session").PipelineResult;
 //# sourceMappingURL=index.d.ts.map

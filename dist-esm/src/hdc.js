@@ -73,4 +73,3 @@ export function nearest(query, memory) {
     }
     return scores.sort((a, b) => b[1] - a[1]);
 }
-//# sourceMappingURL=hdc.js.map

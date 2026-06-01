@@ -17,7 +17,7 @@
  */
 import { HDCAgent } from "./agent";
 import { HDVEncoder } from "./encoder";
-import { CSTToken } from "./tokenizer";
+import { NemoToken } from "./tokenizer";
 import { ReasoningFrame } from "./prep";
 import { ClassifyResult } from "./agent";
 export declare const GATE_HIGH = 0.55;
@@ -25,7 +25,7 @@ export declare const GATE_MED = 0.35;
 export type GateDecision = "skip_llm" | "llm_assist" | "full_llm";
 export interface PipelineResult {
     text: string;
-    tokens: CSTToken[];
+    tokens: NemoToken[];
     frame: ReasoningFrame;
     classification: ClassifyResult;
     tool: string;

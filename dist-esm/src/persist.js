@@ -44,4 +44,3 @@ export function loadFromFile(filePath) {
         encoder.loadAtomState(file.encoderAtoms);
     return { agent, encoder, meta: file.meta ?? {} };
 }
-//# sourceMappingURL=persist.js.map

@@ -1,11 +1,16 @@
 import { HDCAgent } from "../src/agent";
 import { HDVEncoder } from "../src/encoder";
+import { similarity } from "../src/hdc";
 import { tokenize } from "../src/tokenizer";
 
 const DIM = 1000; // smaller for tests — faster
 
-function makeEncoder() { return new HDVEncoder(DIM, 42); }
-function makeAgent()   { return new HDCAgent(DIM); }
+function makeEncoder() {
+  return new HDVEncoder(DIM, 42);
+}
+function makeAgent() {
+  return new HDCAgent(DIM);
+}
 
 function hvFor(text: string, enc: HDVEncoder): Float32Array {
   const [hv] = enc.encode(tokenize(text));
@@ -14,12 +19,20 @@ function hvFor(text: string, enc: HDVEncoder): Float32Array {
 
 function trainAgent(agent: HDCAgent, enc: HDVEncoder): void {
   const techPhrases = [
-    "write code", "fix bug", "debug error", "python script", "software system",
+    "write code",
+    "fix bug",
+    "debug error",
+    "python script",
+    "software system",
   ];
   const weatherPhrases = [
-    "weather forecast", "rain tomorrow", "temperature today", "snow storm", "wind speed",
+    "weather forecast",
+    "rain tomorrow",
+    "temperature today",
+    "snow storm",
+    "wind speed",
   ];
-  for (const p of techPhrases)    agent.observe(hvFor(p, enc), "tech");
+  for (const p of techPhrases) agent.observe(hvFor(p, enc), "tech");
   for (const p of weatherPhrases) agent.observe(hvFor(p, enc), "weather");
   agent.calibrate();
 }
@@ -66,6 +79,39 @@ describe("HDVEncoder", () => {
     const enc = makeEncoder();
     const [hv] = enc.encode([]);
     expect(hv.length).toBe(DIM);
+  });
+
+  test("sub-field token produces valid HV (not silently dropped)", () => {
+    const enc = makeEncoder();
+    // "family" maps to social.family in CST — previously was silently discarded
+    const [hv, dominant] = enc.encode(tokenize("family reunion"));
+    expect(hv.length).toBe(DIM);
+    // dominant should resolve to L1 parent "social"
+    expect(dominant).toBe("social");
+  });
+
+  test("sub-field HV is similar to parent L1 HV", () => {
+    const enc = makeEncoder();
+    // Encode a pure L1 "social" sentence and a sub-field "social.family" sentence.
+    // bind(CONCEPT:social, QUAL:family) should be ~50% similar to CONCEPT:social.
+    const [hvParent] = enc.encode(tokenize("social network"));
+    const [hvChild] = enc.encode(tokenize("family reunion"));
+    const sim = similarity(hvParent, hvChild);
+    // Not orthogonal (random baseline ≈0) and not identical (≈1).
+    // DIM=1000 in tests has high variance; at DIM=10_000 production value is ≈0.3-0.5.
+    expect(sim).toBeGreaterThan(0.05);
+    expect(sim).toBeLessThan(0.95);
+  });
+
+  test("sub-field siblings differ from each other", () => {
+    const enc = makeEncoder();
+    // social.family and social.community should be distinct from each other
+    // but both related to social
+    const [hvFamily] = enc.encode(tokenize("family reunion"));
+    const [hvCommunity] = enc.encode(tokenize("local community group"));
+    const sim = similarity(hvFamily, hvCommunity);
+    // Siblings should not be identical
+    expect(sim).toBeLessThan(0.95);
   });
 });
 
@@ -129,9 +175,9 @@ describe("HDCAgent", () => {
     const enc = makeEncoder();
     const agent = makeAgent();
     trainAgent(agent, enc);
-    const hv  = hvFor("fix software bug", enc);
-    const r1  = agent.classify(hv);
-    const r2  = HDCAgent.fromJSON(agent.toJSON()).classify(hv);
+    const hv = hvFor("fix software bug", enc);
+    const r1 = agent.classify(hv);
+    const r2 = HDCAgent.fromJSON(agent.toJSON()).classify(hv);
     expect(r2.field).toBe(r1.field);
   });
 
