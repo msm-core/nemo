@@ -15,11 +15,11 @@
  *   // After LLM confirms field:
  *   session.teach("find recipe for pasta", "food", { llmAnswer: "..." })
  */
-import { HDCAgent } from "./agent";
-import { HDVEncoder } from "./encoder";
-import { tokenize } from "./tokenizer";
-import { buildFrame, FIELD_TOOL } from "./prep";
-import { saveToFile, loadFromFile } from "./persist";
+import { HDCAgent } from "./agent.js";
+import { HDVEncoder } from "./encoder.js";
+import { tokenize } from "./tokenizer.js";
+import { buildFrame, FIELD_TOOL } from "./prep.js";
+import { saveToFile, loadFromFile } from "./persist.js";
 // ── Shared types (also re-exported from index.ts) ────────────────────────────
 export const GATE_HIGH = 0.55;
 export const GATE_MED = 0.35;

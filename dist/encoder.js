@@ -11,7 +11,7 @@
  * Atom HVs are generated from a seeded xorshift32 RNG. Same seed → same
  * atom space → prototypes are reusable across restarts.
  */
-import { randomHV, makeRNG, bind, bundle, DIM } from "./hdc";
+import { randomHV, makeRNG, bind, bundle, DIM } from "./hdc.js";
 const SEED = 42;
 const FIELDS = [
     "know",

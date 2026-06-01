@@ -1,6 +1,6 @@
 {
   "name": "@msm-core/nemo",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Evolving semantic memory and intent router — CST tokenizer + HDC algebra",
   "type": "module",
   "main": "dist/index.js",
@@ -28,7 +28,7 @@
   "author": "Emad",
   "license": "MIT",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/fix-esm.js",
     "test": "node --experimental-vm-modules node_modules/.bin/jest",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build && npm test"

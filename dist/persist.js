@@ -10,8 +10,8 @@
  */
 import fs from "fs";
 import path from "path";
-import { HDCAgent } from "./agent";
-import { HDVEncoder } from "./encoder";
+import { HDCAgent } from "./agent.js";
+import { HDVEncoder } from "./encoder.js";
 /**
  * Save agent + encoder state to a JSON file.
  * Creates parent directories if they don't exist.

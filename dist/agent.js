@@ -6,7 +6,7 @@
  *
  * Persistence: agent.toJSON() / HDCAgent.fromJSON()
  */
-import { similarity, DIM } from "./hdc";
+import { similarity, DIM } from "./hdc.js";
 export class HDCAgent {
     dim;
     _sum = new Map(); // running sum (f64)
