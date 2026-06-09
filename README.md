@@ -377,7 +377,7 @@ The agent keeps one **running sum** per semantic field. Each accepted input shif
 git clone https://github.com/msm-core/nemo.git
 cd nemo
 npm install
-npm test       # 93 tests
+npm test       # 118 tests
 npm run build  # compiles to dist/
 ```
 

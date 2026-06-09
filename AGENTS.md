@@ -17,7 +17,7 @@ This file is the first thing a code agent should read. It provides the operation
 ## Essential Commands
 
 ```bash
-npm test          # Run all 93 tests (jest with --experimental-vm-modules)
+npm test          # Run all 118 tests (jest with --experimental-vm-modules)
 npm run build     # Compile TypeScript → dist/
 npm run clean     # Remove dist/
 ```

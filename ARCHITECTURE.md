@@ -123,7 +123,7 @@ Self-evolving semantic memory using MAP algebra.
 3. `update(hv, field)` — conditional update at inference: only if `sim(hv, proto) > θ`
 4. `feedback(hv, field)` — unconditional ground-truth update (bypasses threshold)
 
-**Classification:** `classify(hv)` computes cosine similarity against all field prototypes, returns top-3. Confidence is `tanh(rawSim * 3)` to compress into (0, 1).
+**Classification:** `classify(hv)` computes cosine similarity against all field prototypes, returns top-3. Confidence is `tanh(rawSim * 2.5)` to compress into (0, 1).
 
 **Persistence:** `toJSON()` / `fromJSON()` — all internal state is plain JSON-safe (number arrays, not typed arrays).
 
