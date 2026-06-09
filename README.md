@@ -60,12 +60,17 @@ const training: Record<string, string[]> = {
   food: ["pasta recipe", "how to cook chicken", "vegan dinner ideas"],
 };
 
+const examples: Array<{ hv: Float32Array; field: string }> = [];
 for (const [field, phrases] of Object.entries(training)) {
   for (const phrase of phrases) {
     const [hv] = encoder.encode(tokenize(phrase));
     agent.observe(hv, field);
+    examples.push({ hv, field });
   }
 }
+// Discriminative retraining — builds inter-class margin a plain centroid lacks.
+// Strongly recommended: lifts macro-F1 substantially vs observe()-only.
+agent.fit(examples, { epochs: 30 });
 agent.calibrate();
 
 // Classify
@@ -205,7 +210,8 @@ Full stack in one call. For Arabic, use `pipelineAr(text, agent, encoder)` — s
 
 | Method                         | Description                                             |
 | ------------------------------ | ------------------------------------------------------- |
-| `observe(hv, field)`           | Accumulate a hypervector during training                |
+| `observe(hv, field)`           | Accumulate a hypervector into a field centroid          |
+| `fit(examples, opts?)`         | Discriminative retraining — iterative margin-building pass after `observe()` (recommended; big macro-F1 gain) |
 | `calibrate()`                  | Compute per-field thresholds — call once after training |
 | `classify(hv)`                 | Returns `ClassifyResult`                                |
 | `update(hv, field, meta?)`     | Conditional self-update at inference time               |

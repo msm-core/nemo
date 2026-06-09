@@ -87,7 +87,10 @@ export class HDCAgent {
     const std = Math.sqrt(
       sims.reduce((a, b) => a + (b - mean) ** 2, 0) / sims.length,
     );
-    this._theta.set(field, mean - 1.5 * std);
+    // Floor at a small positive value: high-variance fields could otherwise get
+    // a NEGATIVE θ, which makes verify()/update() accept anti-correlated vectors
+    // and pollute the prototype (the "negative-θ drift" failure mode).
+    this._theta.set(field, Math.max(0.01, mean - 1.5 * std));
   }
 
   // ── Core API ────────────────────────────────────────────────────────────────
@@ -103,6 +106,61 @@ export class HDCAgent {
     }
     this._accum(field, hv);
     this.nObserved++;
+  }
+
+  /** Nearest field by cosine to the (binarized) prototypes — no side effects. */
+  private _argmax(hv: Float32Array): string {
+    let best = "";
+    let bestSim = -Infinity;
+    for (const [f, p] of this._proto) {
+      const s = similarity(hv, p);
+      if (s > bestSim) {
+        bestSim = s;
+        best = f;
+      }
+    }
+    return best;
+  }
+
+  /** Nudge a field's running sum by ±scale·hv and re-binarize its prototype. */
+  private _nudge(field: string, hv: Float32Array, scale: number): void {
+    const s = this._sum.get(field);
+    if (!s) return;
+    for (let i = 0; i < this.dim; i++) s[i] += scale * hv[i];
+    const p = this._proto.get(field) ?? new Float32Array(this.dim);
+    for (let i = 0; i < this.dim; i++) p[i] = s[i] >= 0 ? 1 : -1;
+    this._proto.set(field, p);
+  }
+
+  /**
+   * Discriminative (iterative) retraining — the accuracy lever a plain centroid
+   * classifier lacks. After observe() builds initial centroids, this sweeps the
+   * training set for `epochs`: on each MISCLASSIFIED example it strengthens the
+   * true field's prototype (+lr·hv) and weakens the wrongly-predicted one
+   * (−lr·hv), building inter-class margin. Converges early when a sweep is clean.
+   * (OnlineHD-style perceptron update on the bipolar accumulators.)
+   */
+  fit(
+    examples: Array<{ hv: Float32Array; field: string }>,
+    opts: { epochs?: number; lr?: number } = {},
+  ): { epochs: number; finalErrors: number } {
+    const epochs = opts.epochs ?? 20;
+    const lr = opts.lr ?? 1;
+    let e = 0;
+    let errs = examples.length;
+    for (; e < epochs; e++) {
+      errs = 0;
+      for (const { hv, field } of examples) {
+        const pred = this._argmax(hv);
+        if (pred !== field) {
+          errs++;
+          this._nudge(field, hv, lr);
+          if (pred) this._nudge(pred, hv, -lr);
+        }
+      }
+      if (errs === 0) break;
+    }
+    return { epochs: e + 1, finalErrors: errs };
   }
 
   /** Compute per-field thresholds. Call once after observe() phase. */

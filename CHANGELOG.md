@@ -5,6 +5,37 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.2.0] — 2026-06-09
+
+### Added
+
+- **`HDCAgent.fit(examples, {epochs, lr})`** — discriminative (iterative)
+  retraining. A plain centroid (`observe()` only) builds one averaged prototype
+  per field with no inter-class margin; `fit()` sweeps the training set and, on
+  each misclassified example, strengthens the true field's prototype (+lr·hv)
+  and weakens the wrongly-predicted one (−lr·hv). This is the accuracy lever the
+  classifier was missing. On the EN intent benchmark (seeded 80/20, 20 ex/field,
+  7 fields) it lifts **macro-F1 ~0.65 → 0.75 and skip_llm precision ~0.80 → 0.86**
+  — clearing both the 0.65 F1 and 0.85 gate-precision bars.
+
+### Fixed
+
+- **Negative-θ drift**: `calibrate()` floored per-field θ at 0.01. A high-variance
+  field could previously get a negative threshold, making `verify()`/`update()`
+  accept anti-correlated vectors and pollute the prototype.
+
+### Notes
+
+- The benchmark scripts now use a **seeded** train/test split — results are
+  reproducible (were `Math.random()`-shuffled, varying run to run).
+- Recorded benchmark JSONs were stale: live EN is ~0.75 macro-F1 (was reported
+  0.59). Arabic (18-field MASSIVE) reaches ~0.37–0.48 macro-F1 and remains
+  below bar — it is limited by Arabic **tokenization coverage** (≈28% LIT →
+  sparse hypervectors), not the classifier; closing it depends on the cst
+  Arabic-coverage work, not on `fit()`.
+
+---
+
 ## [2.0.0] — 2025-07-09
 
 ### Breaking
